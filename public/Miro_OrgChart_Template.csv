@@ -1,0 +1,42 @@
+Name,Work Email,Job Title,Location,Division,Department,Job Description,Manager Email Address
+Jake Smith,jake.smith@miro.com,CEO,Amsterdam,,Executive,,
+John Doe,john.doe@miro.com,Head of Revenue,San Francisco,Sales,Executive,,jake.smith@miro.com
+Jane McDonald,jane.mcdonald@miro.com,Solutions Engineer,Amsterdam,Sales,Solutions Engineering,,jake.mckenzie@miro.com
+Michael Geller,michael.geller@miro.com,Solutions Engineer,Los Angeles,Sales,Solutions Engineering,,mary.sheffield@miro.com
+Finnley Porter,finnley.porter@miro.com,US Strategic East & Central SE Leader,Austin,Sales,Solutions Engineering,,andre.jenkins@miro.com
+Alexandra Marshall,alexandra.marshall@miro.com,Head of Global Solutions Engineering,Amsterdam,Sales,Solutions Engineering,,timothy.willis@miro.com
+Miles Miller,miles.miller@miro.com,Solutions Engineer,Los Angeles,Sales,Solutions Engineering,,zara.campbell@miro.com
+Darcy Russell,darcy.russell@miro.com,Solutions Engineer,Austin,Sales,Solutions Engineering,,zara.campbell@miro.com
+Andre Jenkins,andre.jenkins@miro.com,Head of US Solutions Engineering,Los Angeles,Sales,Solutions Engineering,,alexandra.marshall@miro.com
+Zara Campbell,zara.campbell@miro.com,Enterprise SE Leader,Austin,Sales,Solutions Engineering,,andre.jenkins@miro.com
+Jake McKenzie,jake.mckenzie@miro.com,"UKI, France & Partner SE Leader",London,Sales,Solutions Engineering,,edison.graham@miro.com
+Luis Santos Colman,luis.s@miro.com,Solutions Engineer,Amsterdam,Product,Solutions Engineering,,wilfred.west@miro.com
+Alicia Lane,alicia.lane@miro.com,Solutions Engineer,Austin,Sales,Solutions Engineering,,zara.campbell@miro.com
+Carter Chambers,carter.chambers@miro.com,Solutions Engineer,New York,Sales,Solutions Engineering,,finnley.porter@miro.com
+Isabella Thomson,isabella.thomson@miro.com,Solutions Engineer,Austin,Sales,Solutions Engineering,,finnley.porter@miro.com
+Casper Gardner,casper.gardner@miro.com,Partner Solutions Engineer,Amsterdam,Sales,Solutions Engineering,,jake.mckenzie@miro.com
+Miriam Jenkins,miriam.jenkins@miro.com,Solutions Engineer,Austin,Sales,Solutions Engineering,,zara.campbell@miro.com
+Timothy Willis,timothy.willis@miro.com,Head of Sales,New York,Sales,Executive,,john.doe@miro.com
+Andre George,andre.george@miro.com,Solutions Engineer,Sydney,Sales,Solutions Engineering,,mary.sheffield@miro.com
+Jack Smith,jack.smith@miro.com,Solutions Engineer,San Francisco,Sales,Solutions Engineering,,mary.sheffield@miro.com
+Elizabeth Andrews,elizabeth.andrews@miro.com,Solutions Engineer,Munich,Sales,Solutions Engineering,,ashton.wallace@miro.com
+Connor Morgan,connor.morgan@miro.com,Solutions Engineer,Munich,Sales,Solutions Engineering,,ashton.wallace@miro.com
+Zakaria Jenkins,zakaria.jenkins@miro.com,Solutions Engineer,Sydney,Sales,Solutions Engineering,,mary.sheffield@miro.com
+Stephen Holmes,stephen.holmes@miro.com,Solutions Engineer,Austin,Sales,Solutions Engineering,,finnley.porter@miro.com
+Coby Jones,coby.jones@miro.com,Commercial Solutions Engineer,Austin,Sales,Solutions Engineering,,zara.campbell@miro.com
+Brooklyn Foster,brooklyn.foster@miro.com,Solutions Engineer,London,Sales,Solutions Engineering,,jake.mckenzie@miro.com
+Andrew Patel,andrew.patel@miro.com,Solutions Engineer,New York,Sales,Solutions Engineering,,finnley.porter@miro.com
+Julia Hayes,julia.hayes@miro.com,Solutions Engineer,Amsterdam,Sales,Solutions Engineering,,wilfred.west@miro.com
+Esther Reid,esther.reid@miro.com,Solutions Engineer,San Francisco,Sales,Solutions Engineering,,mary.sheffield@miro.com
+Edison Graham,edison.graham@miro.com,Head of EMEA Solutions Engineering,Amsterdam,Sales,Solutions Engineering,,alexandra.marshall@miro.com
+Ashton Wallace,ashton.wallace@miro.com,DACH SE Leader,Munich,Sales,Solutions Engineering,,edison.graham@miro.com
+Amelia Austin,amelia.austin@miro.com,Solutions Engineer,New York,Sales,Solutions Engineering,,finnley.porter@miro.com
+Cameron Reid,cameron.reid@miro.com,Solutions Engineer,Sydney,Sales,Solutions Engineering,,mary.sheffield@miro.com
+Wilfred West,wilfred.west@miro.com,BNE & ROE SE Leader,Amsterdam,Sales,Solutions Engineering,,edison.graham@miro.com
+Nicholas Marsh,nicholas.marsh@miro.com,Solutions Engineer,Austin,Sales,Solutions Engineering,,zara.campbell@miro.com
+Aaron Mills,aaron.mills@miro.com,Head of Value Engineering,San Francisco,Sales,Solutions Engineering,,alexandra.marshall@miro.com
+Matteo Riley,matteo.riley@miro.com,Solutions Engineer,Munich,Sales,Solutions Engineering,,ashton.wallace@miro.com
+Mary Sheffield,mary.sheffield@miro.com,US Strategic West & APAC SE Leader,Austin,Sales,Solutions Engineering,,andre.jenkins@miro.com
+Jan Williams,jan.williams@miro.com,Solutions Engineer,Amsterdam,Sales,Solutions Engineering,,wilfred.west@miro.com
+Ernest Williamson,ernest.williamson@miro.com,Solutions Engineer,London,Sales,Solutions Engineering,,jake.mckenzie@miro.com
+John Martin,john.martin@miro.com,Solutions Engineer,Paris,Sales,Solutions Engineering,,jake.mckenzie@miro.com

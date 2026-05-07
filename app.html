@@ -1,38 +1,167 @@
 <!DOCTYPE html>
 <html lang="en">
+  <!--
+    Side-panel UI for the Miro Card Org Chart app.
+    Loaded when the user clicks the app icon on the board (see src/index.js).
+    "Create new org chart" opens create-chart.html as a modal (CSV wizard).
+    Conditional formatting and single-card details are collapsible sections
+    (collapsed by default; click the section heading to expand).
+  -->
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <script src="https://miro.com/app/static/sdk/v2/miro.js"></script>
-    <title>Disney Org Chart</title>
+    <title>Miro Card Org Chart</title>
   </head>
   <body>
-    
     <div id="root">
-      <div class="grid wrapper">
-        <div class="cs1 ce12">
-          <img src="/src/assets/congratulations.png" alt="" />
-        </div>
-        <div class="cs1 ce12">
-          <h1>Congratulations!</h1>
-          <p>You've just created your first Miro app!</p>
-          <p>
-            To explore more and build your own app, see the Miro Developer
-            Platform documentation.
-          </p>
-        </div>
-        <div class="cs1 ce12">
-          <a
-            class="button button-primary"
-            target="_blank"
-            href="https://developers.miro.com"
-          >
-            Read the documentation
-          </a>
-        </div>
+      <div class="grid wrapper form-view">
+        <form class="cs1 ce12 form-view-main-content">
+
+          <!-- Launch the create-chart modal -->
+          <div class="form-group">
+            <button type="button" id="open-create-modal-btn" class="button button-primary form-primary-action">
+              Create new org chart
+            </button>
+            <p class="body-small subtext" style="margin-top: var(--space-small);">
+              Upload a CSV file to build your org chart on this board.
+            </p>
+          </div>
+
+          <!-- ── Conditional formatting ───────────────────────────────────────── -->
+          <section class="form-section collapsible-section">
+            <h2 class="title title-level-2">
+              <button type="button" class="section-toggle" aria-expanded="false">
+                Conditional formatting
+                <svg class="chevron-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                     aria-hidden="true">
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </button>
+            </h2>
+            <div class="section-body">
+              <p class="body-small subtext">Select cards on the board, then load them to format by field values.</p>
+              <button type="button" id="load-selected-cards" class="button button-secondary form-load-button">Load selected cards</button>
+
+              <!-- Shown after "Load selected cards" populates format-field from card field names -->
+              <div id="conditional-format-section" style="display: none; margin-top: var(--space-medium);">
+                <h3 class="title title-level-3">Apply style when</h3>
+
+                <div class="form-group">
+                  <label for="format-field">Field</label>
+                  <select id="format-field" class="select"></select>
+                </div>
+
+                <div class="form-group">
+                  <label for="format-operator">Condition</label>
+                  <select id="format-operator" class="select">
+                    <optgroup label="Text">
+                      <option value="equals">equals</option>
+                      <option value="contains">contains</option>
+                      <option value="notEquals">does not equal</option>
+                      <option value="startsWith">starts with</option>
+                      <option value="endsWith">ends with</option>
+                    </optgroup>
+                    <optgroup label="Number">
+                      <option value="numEquals">= (equal to)</option>
+                      <option value="numNotEquals">&#8800; (not equal to)</option>
+                      <option value="gt">&gt; (greater than)</option>
+                      <option value="gte">&#8805; (greater than or equal)</option>
+                      <option value="lt">&lt; (less than)</option>
+                      <option value="lte">&#8804; (less than or equal)</option>
+                    </optgroup>
+                  </select>
+                </div>
+
+                <div class="form-group">
+                  <label for="format-value">Value</label>
+                  <input type="text" id="format-value" class="input" placeholder="e.g. New York" />
+                </div>
+
+                <div class="form-group">
+                  <label id="format-color-label">Card color (border / theme)</label>
+                  <div id="format-color" class="color-swatch-grid" role="radiogroup" aria-labelledby="format-color-label"></div>
+                </div>
+
+                <div class="form-group">
+                  <label class="toggle">
+                    <input type="checkbox" id="format-fill-background" />
+                    <span>Fill card background</span>
+                  </label>
+                </div>
+
+                <button type="button" id="apply-format" class="button button-primary form-primary-action">
+                  Apply to matching cards
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <!-- ── Single card details ─────────────────────────────────────────── -->
+          <section class="form-section collapsible-section">
+            <h2 class="title title-level-2">
+              <button type="button" class="section-toggle" aria-expanded="false">
+                Single card details
+                <svg class="chevron-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                     stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                     aria-hidden="true">
+                  <polyline points="6 9 12 15 18 9"></polyline>
+                </svg>
+              </button>
+            </h2>
+            <div class="section-body">
+              <p class="body-small subtext">Select a single card on the board to view or edit its fields.</p>
+              <button type="button" id="load-single-card" class="button button-secondary form-load-button">Load selected card</button>
+
+              <!-- Shown after a single card is loaded -->
+              <div id="single-card-section" style="display: none; margin-top: var(--space-medium);">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-small);">
+                  <h3 class="title title-level-3" id="single-card-name"></h3>
+                  <button type="button" id="edit-card-fields-btn" class="button button-secondary">Edit fields</button>
+                </div>
+                <div id="single-card-fields"></div>
+                <button type="button" id="save-card-fields-btn" class="button button-primary form-primary-action" style="display: none; margin-top: var(--space-medium);">Save changes</button>
+              </div>
+            </div>
+          </section>
+
+        </form>
       </div>
     </div>
-    
+
+    <!-- Gradient color picker popup — fixed-position so it isn't clipped by section-body overflow:hidden -->
+    <div id="color-picker-popup" role="dialog" aria-label="Pick a custom color">
+      <!-- Saturation / brightness gradient canvas -->
+      <div class="cp-gradient" id="cp-gradient">
+        <div class="cp-cursor" id="cp-cursor"></div>
+      </div>
+
+      <!-- Controls: eyedropper · color preview · hue slider -->
+      <div class="cp-controls">
+        <button type="button" class="cp-eyedropper" id="cp-eyedropper" aria-label="Pick color from screen" title="Pick color from screen">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+               stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="m2 22 1-1h3l9-9"/><path d="M3 21v-3l9-9"/>
+            <path d="m15 6 3.4-3.4a2.1 2.1 0 1 1 3 3L18 9l.4.4a2.1 2.1 0 1 1-3 3l-3.8-3.8Z"/>
+          </svg>
+        </button>
+        <div class="cp-preview" id="cp-preview"></div>
+        <div class="cp-hue-track" id="cp-hue-track">
+          <div class="cp-hue-thumb" id="cp-hue-thumb"></div>
+        </div>
+      </div>
+
+      <!-- Hex input row -->
+      <div class="cp-hex-row">
+        <input type="text" id="color-picker-hex" class="cp-hex-input"
+               maxlength="7" spellcheck="false" autocomplete="off" />
+        <span class="cp-mode-badge">HEX</span>
+      </div>
+
+      <button type="button" id="color-picker-confirm" class="button button-primary cp-confirm-btn">Add color</button>
+    </div>
+
     <script type="module" src="/src/app.js"></script>
   </body>
 </html>

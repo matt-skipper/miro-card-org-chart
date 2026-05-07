@@ -1,11 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
+  <!--
+    Local dev landing page (npm start → http://localhost:3009/ — see vite.config.js).
+    Explains how to create a Miro Developer team and links to app.html for panel preview.
+    The board-side panel is app.html (opened from the app icon via src/index.js).
+  -->
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" href="/src/assets/style.css" />
     <script src="https://miro.com/app/static/sdk/v2/miro.js"></script>
-    <title>Disney Org Chart</title>
+    <title>Miro Card Org Chart</title>
   </head>
   <body>
     <div id="root" aria-hidden="true">
@@ -34,6 +39,7 @@
         </div>
       </div>
     </div>
+    <!-- Registers Miro icon click → open app.html panel -->
     <script type="module" src="/src/index.js"></script>
   </body>
 </html>
