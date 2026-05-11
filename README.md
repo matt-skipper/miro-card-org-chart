@@ -2,6 +2,8 @@
 
 A [Miro](https://miro.com) Web SDK app that builds an **organizational chart on the board** from a CSV file. It creates **cards** for each person, draws **elbow connectors** for reporting lines, and includes **conditional formatting** plus **single-card field editing** in the side panel.
 
+See this Miro board for additional documentation: https://miro.com/app/board/uXjVHW0co2g=/?share_link_id=739600105069
+
 ---
 
 ## Features
