@@ -444,19 +444,121 @@ img {
 /* ── Upload / mapping view containers ────────────────────────────────────── */
 /* Each view is a flex column; only one is visible at a time.                  */
 
-#view-upload {
+#view-layout {
   display: flex;
   flex-direction: column;
 }
 
+#view-upload {
+  display: none; /* shown by JS when user clicks Next on the layout page */
+  flex-direction: column;
+}
+
 #view-mapping {
-  display: none; /* shown by JS when user clicks Next */
+  display: none; /* shown by JS when user clicks Next on the upload page */
   flex-direction: column;
 }
 
 #view-fields {
-  display: none; /* shown by JS when user clicks Next on page 2 */
+  display: none; /* shown by JS when user clicks Next on the mapping page */
   flex-direction: column;
+}
+
+/* ── Choose layout view (page 1 of upload flow) ──────────────────────────── */
+
+.layout-title {
+  text-align: center;
+  margin: 8px 0 24px;
+}
+
+.layout-options {
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+  margin-bottom: 22px;
+}
+
+.layout-option {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: 150px;
+  padding: 18px 12px 12px;
+  background: #fff;
+  border: 1.5px solid #e0e0e0;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+  font: inherit;
+  color: inherit;
+}
+
+.layout-option:hover {
+  border-color: #1a1a1a;
+}
+
+.layout-option[aria-checked='true'] {
+  border-color: var(--color-primary, #4262ff);
+  box-shadow: inset 0 0 0 1px var(--color-primary, #4262ff);
+}
+
+.layout-option:focus-visible {
+  outline: 2px solid var(--color-primary, #4262ff);
+  outline-offset: 2px;
+}
+
+.layout-option-check {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid #c8c8c8;
+  border-radius: 3px;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.layout-option-check svg {
+  opacity: 0;
+}
+
+.layout-option[aria-checked='true'] .layout-option-check {
+  border-color: var(--color-primary, #4262ff);
+  background: var(--color-primary, #4262ff);
+}
+
+.layout-option[aria-checked='true'] .layout-option-check svg {
+  opacity: 1;
+}
+
+.layout-option-thumb {
+  width: 100%;
+  height: 84px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.layout-option-thumb svg {
+  width: 100%;
+  height: 100%;
+}
+
+.layout-option-label {
+  font-size: 14px;
+  color: var(--color-text-primary, #1a1a1a);
+  text-align: center;
+}
+
+.next-step-hint {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--color-text-secondary, #808080);
 }
 
 /* ── Column mapping view (page 2 of upload flow) ─────────────────────────── */

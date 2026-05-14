@@ -3,8 +3,9 @@
   <!--
     Modal UI for the CSV upload / org chart creation flow.
     Opened from app.html when the user clicks "Create new org chart" (see setupCreateChartButton in src/app.js).
-    Step 1: upload CSV (optional "Include header values"), step 2: map hierarchy columns,
-    step 3: choose up to 20 additional field columns. On success the modal closes and cards appear on the board.
+    Step 1: choose layout (vertical / horizontal), step 2: upload CSV (optional "Include header values"),
+    step 3: map hierarchy columns, step 4: choose up to 20 additional field columns.
+    On success the modal closes and cards appear on the board.
   -->
   <head>
     <meta charset="utf-8" />
@@ -29,9 +30,80 @@
 
     <div id="root">
 
-      <!-- ── Page 1: Upload CSV ──────────────────────────────────────────────── -->
+      <!-- ── Page 1: Choose layout ───────────────────────────────────────────── -->
+      <div id="view-layout">
+        <p class="fields-step-label">Step 1/4</p>
+        <h1 class="upload-title layout-title">Org Chart - Choose layout</h1>
+
+        <div class="layout-options" role="radiogroup" aria-label="Choose layout">
+          <button type="button" class="layout-option" data-layout="vertical"
+                  role="radio" aria-checked="false">
+            <span class="layout-option-check" aria-hidden="true">
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                <path d="M2 5l2 2 4-4" stroke="white" stroke-width="1.6"
+                      stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </span>
+            <div class="layout-option-thumb">
+              <svg viewBox="0 0 100 72" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <g stroke="#b4b7e8" stroke-width="1.1" fill="none" stroke-linecap="round">
+                  <path d="M50 12 V18 M26 18 H74 M26 18 V24 M74 18 V24"/>
+                  <path d="M26 34 V40 M13 40 H39 M13 40 V46 M39 40 V46"/>
+                  <path d="M74 34 V40 M61 40 H87 M61 40 V46 M87 40 V46"/>
+                </g>
+                <g fill="#b4b7e8">
+                  <rect x="42" y="2"  width="16" height="10" rx="2"/>
+                  <rect x="18" y="24" width="16" height="10" rx="2"/>
+                  <rect x="66" y="24" width="16" height="10" rx="2"/>
+                  <rect x="6"  y="46" width="14" height="10" rx="2"/>
+                  <rect x="32" y="46" width="14" height="10" rx="2"/>
+                  <rect x="54" y="46" width="14" height="10" rx="2"/>
+                  <rect x="80" y="46" width="14" height="10" rx="2"/>
+                </g>
+              </svg>
+            </div>
+            <span class="layout-option-label">Vertical</span>
+          </button>
+
+          <button type="button" class="layout-option" data-layout="horizontal"
+                  role="radio" aria-checked="false">
+            <span class="layout-option-check" aria-hidden="true">
+              <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                <path d="M2 5l2 2 4-4" stroke="white" stroke-width="1.6"
+                      stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </span>
+            <div class="layout-option-thumb">
+              <svg viewBox="0 0 100 72" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <g stroke="#b4b7e8" stroke-width="1.1" fill="none" stroke-linecap="round">
+                  <path d="M20 36 H25 M25 19 V53 M25 19 H30 M25 53 H30"/>
+                  <path d="M48 19 H55 M55 9 V29 M55 9 H62 M55 29 H62"/>
+                  <path d="M48 53 H55 M55 43 V63 M55 43 H62 M55 63 H62"/>
+                </g>
+                <g fill="#b4b7e8">
+                  <rect x="2"  y="31" width="18" height="10" rx="2"/>
+                  <rect x="30" y="14" width="18" height="10" rx="2"/>
+                  <rect x="30" y="48" width="18" height="10" rx="2"/>
+                  <rect x="62" y="4"  width="16" height="10" rx="2"/>
+                  <rect x="62" y="24" width="16" height="10" rx="2"/>
+                  <rect x="62" y="38" width="16" height="10" rx="2"/>
+                  <rect x="62" y="58" width="16" height="10" rx="2"/>
+                </g>
+              </svg>
+            </div>
+            <span class="layout-option-label">Horizontal</span>
+          </button>
+        </div>
+
+        <button type="button" id="layout-next-btn" class="button button-primary upload-next-btn" disabled>
+          Next
+        </button>
+        <p class="next-step-hint">Next: Select data source</p>
+      </div>
+
+      <!-- ── Page 2: Upload CSV ──────────────────────────────────────────────── -->
       <div id="view-upload">
-        <p class="fields-step-label">Step 1/3</p>
+        <p class="fields-step-label">Step 2/4</p>
         <h1 class="upload-title">Upload CSV file</h1>
 
         <div class="upload-prereqs">
@@ -91,14 +163,17 @@
           </span>
         </div>
 
-        <button type="button" id="next-btn" class="button button-primary upload-next-btn" disabled>
-          Next
-        </button>
+        <div class="mapping-actions" style="margin-top: 8px;">
+          <button type="button" id="upload-back-btn" class="button button-secondary">Back</button>
+          <button type="button" id="next-btn" class="button button-primary" disabled>
+            Next
+          </button>
+        </div>
       </div>
 
-      <!-- ── Page 2: Column mapping ──────────────────────────────────────────── -->
+      <!-- ── Page 3: Column mapping ──────────────────────────────────────────── -->
       <div id="view-mapping">
-        <p class="fields-step-label">Step 2/3</p>
+        <p class="fields-step-label">Step 3/4</p>
         <h1 class="upload-title">Map columns</h1>
         <p class="mapping-description">
           Select which CSV columns identify each employee and their supervisor to form the org chart hierarchy
@@ -133,9 +208,9 @@
         </div>
       </div>
 
-      <!-- ── Page 3: Additional fields ──────────────────────────────────────── -->
+      <!-- ── Page 4: Additional fields ──────────────────────────────────────── -->
       <div id="view-fields">
-        <p class="fields-step-label">Step 3/3</p>
+        <p class="fields-step-label">Step 4/4</p>
         <h1 class="upload-title">Additional information</h1>
         <p class="mapping-description">
           Choose the columns in your CSV that will be imported to the Org Chart (limit: 20 columns)

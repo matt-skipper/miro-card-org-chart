@@ -52,6 +52,16 @@ const LEAF_COL_GAP_BETWEEN_ICS = 120;
  */
 const LEAF_COL_NODE_DISTANCE = NODE_DISTANCE + LEAF_COL_X_OFFSET;
 
+// ─── Horizontal Layout Constants ──────────────────────────────────────────────
+// Horizontal layout: tree grows left→right instead of top→bottom. Siblings stack
+// vertically; depth levels spread horizontally. Leaf-col is disabled in this
+// mode because regular Buchheim already arranges siblings in a vertical column.
+
+/** Horizontal layout: edge-to-edge vertical gap between sibling cards */
+const H_LAYOUT_SIBLING_GAP = 64;
+/** Horizontal layout: edge-to-edge horizontal gap between a parent's right and its children's lefts */
+const H_LAYOUT_LEVEL_GAP = 108;
+
 // ─── CSV Parsing ──────────────────────────────────────────────────────────────
 
 /** Split CSV text into { headers, rows }. Handles quoted fields and \r\n. */
@@ -257,25 +267,26 @@ function buildLayoutTree(tree, leafColMgrs) {
 
 /**
  * First pass: compute preliminary x coordinates bottom-up.
- * Uses LEAF_COL_NODE_DISTANCE when the left sibling is a leaf-col manager,
- * reserving horizontal room for its IC stack.
+ * `nodeDistance` is the standard center-to-center sibling distance along the spread axis.
+ * `leafColNodeDistance` is used when the left sibling is a leaf-col manager, reserving
+ * room for its IC stack (equal to `nodeDistance` when leaf-col is disabled).
  */
-function buchFirstWalk(v, leafColMgrs) {
+function buchFirstWalk(v, leafColMgrs, nodeDistance, leafColNodeDistance) {
   if (v.isLeaf) {
     const w = v.leftSibling();
-    const dist = (w && leafColMgrs.has(w.index)) ? LEAF_COL_NODE_DISTANCE : NODE_DISTANCE;
+    const dist = (w && leafColMgrs.has(w.index)) ? leafColNodeDistance : nodeDistance;
     v.prelim = w ? w.prelim + dist : 0;
   } else {
     let defaultAncestor = v.children[0];
     for (const w of v.children) {
-      buchFirstWalk(w, leafColMgrs);
-      defaultAncestor = buchApportion(w, defaultAncestor, leafColMgrs);
+      buchFirstWalk(w, leafColMgrs, nodeDistance, leafColNodeDistance);
+      defaultAncestor = buchApportion(w, defaultAncestor, leafColMgrs, nodeDistance, leafColNodeDistance);
     }
     buchExecuteShifts(v);
     const mid = (v.leftChild.prelim + v.rightChild.prelim) / 2;
     const leftSib = v.leftSibling();
     if (leftSib) {
-      const dist = leafColMgrs.has(leftSib.index) ? LEAF_COL_NODE_DISTANCE : NODE_DISTANCE;
+      const dist = leafColMgrs.has(leftSib.index) ? leafColNodeDistance : nodeDistance;
       v.prelim = leftSib.prelim + dist;
       v.mod = v.prelim - mid; // shift so descendants are centered under v
     } else {
@@ -288,9 +299,9 @@ function buchFirstWalk(v, leafColMgrs) {
  * Merge the contours of v's subtree with its left sibling's subtree.
  * Shifts v's subtree right by the minimum amount needed to avoid overlap.
  * Uses ancestor pointers to achieve O(n) overall complexity.
- * Uses LEAF_COL_NODE_DISTANCE when the contour traversal lands on a leaf-col manager.
+ * `leafColNodeDistance` is applied when the contour traversal lands on a leaf-col manager.
  */
-function buchApportion(v, defaultAncestor, leafColMgrs) {
+function buchApportion(v, defaultAncestor, leafColMgrs, nodeDistance, leafColNodeDistance) {
   const w = v.leftSibling();
   if (!w) return defaultAncestor;
 
@@ -303,7 +314,7 @@ function buchApportion(v, defaultAncestor, leafColMgrs) {
     vil = vil.nextRight(); vir = vir.nextLeft();
     vol = vol.nextLeft();  vor = vor.nextRight();
     vor.ancestor = v;
-    const dist = leafColMgrs.has(vil.index) ? LEAF_COL_NODE_DISTANCE : NODE_DISTANCE;
+    const dist = leafColMgrs.has(vil.index) ? leafColNodeDistance : nodeDistance;
     const shift = (vil.prelim + sil) - (vir.prelim + sir) + dist;
     if (shift > 0) {
       buchMoveSubtree(buchGetAncestor(vil, v, defaultAncestor), v, shift);
@@ -348,31 +359,56 @@ function buchGetAncestor(vil, v, defaultAncestor) {
 }
 
 /**
- * Second pass: convert preliminary x + accumulated mod offsets into final positions.
- * y is derived directly from each node's BFS depth × levelHeight.
+ * Second pass: convert preliminary positions + accumulated mod offsets into final coords.
+ *
+ * In 'vertical' layout (the original), `prelim` is the x coordinate and `depth × levelHeight`
+ * is the y coordinate — tree grows top→bottom.
+ * In 'horizontal' layout, the axes swap: `prelim` becomes y and `depth × levelHeight` becomes
+ * x — tree grows left→right.
  */
-function buchSecondWalk(v, m, positionByIndex, levelHeight) {
+function buchSecondWalk(v, m, positionByIndex, levelHeight, layout) {
   if (v.index !== -1) {
-    positionByIndex.set(v.index, { x: v.prelim + m, y: v.depth * levelHeight });
+    const along = v.prelim + m;
+    const depth = v.depth * levelHeight;
+    positionByIndex.set(v.index, layout === 'horizontal'
+      ? { x: depth, y: along }
+      : { x: along, y: depth });
   }
-  for (const w of v.children) buchSecondWalk(w, m + v.mod, positionByIndex, levelHeight);
+  for (const w of v.children) buchSecondWalk(w, m + v.mod, positionByIndex, levelHeight, layout);
 }
 
 /**
  * Run the full Buchheim layout.
  * Returns { positionByIndex, leafColMgrs } where positionByIndex is
- * Map<recordIndex, {x, y}> in layout coordinates (centered around x=0).
- * Leaf-col managers' IC children are NOT yet positioned — call applyLeafColLayout next.
+ * Map<recordIndex, {x, y}> in layout coordinates (centered around the origin on
+ * the spread axis).
+ *
+ * In 'vertical' layout, leaf-col managers' IC children are NOT yet positioned —
+ * call applyLeafColLayout next. In 'horizontal' layout, leaf-col is disabled
+ * (regular Buchheim already stacks siblings vertically), so leafColMgrs is empty.
+ *
  * @param {object} tree
  * @param {number} [cardHeight=CARD_HEIGHT] — actual card height (from probe card measurement)
+ * @param {'vertical'|'horizontal'} [layout='vertical']
  */
-function computeBuchheimLayout(tree, cardHeight = CARD_HEIGHT) {
-  const levelHeight = cardHeight + V_GAP;
-  const leafColMgrs = getLeafColManagers(tree);
+function computeBuchheimLayout(tree, cardHeight = CARD_HEIGHT, layout = 'vertical') {
+  let nodeDistance, leafColNodeDistance, levelHeight, leafColMgrs;
+  if (layout === 'horizontal') {
+    // Siblings stack along the vertical (spread) axis; levels advance horizontally.
+    nodeDistance = cardHeight + H_LAYOUT_SIBLING_GAP;
+    leafColNodeDistance = nodeDistance; // leaf-col disabled in horizontal mode
+    levelHeight = CARD_WIDTH + H_LAYOUT_LEVEL_GAP;
+    leafColMgrs = new Set();
+  } else {
+    nodeDistance = NODE_DISTANCE;
+    leafColNodeDistance = LEAF_COL_NODE_DISTANCE;
+    levelHeight = cardHeight + V_GAP;
+    leafColMgrs = getLeafColManagers(tree);
+  }
   const { root } = buildLayoutTree(tree, leafColMgrs);
-  buchFirstWalk(root, leafColMgrs);
+  buchFirstWalk(root, leafColMgrs, nodeDistance, leafColNodeDistance);
   const positionByIndex = new Map();
-  buchSecondWalk(root, -root.prelim, positionByIndex, levelHeight);
+  buchSecondWalk(root, -root.prelim, positionByIndex, levelHeight, layout);
   return { positionByIndex, leafColMgrs };
 }
 
@@ -426,7 +462,8 @@ function getCardFieldsFromCsv(rec, includeHeaders, fieldCols) {
  * Uses a temporary “probe” card to measure real card height (extra fields grow the widget)
  * before final positions are computed so vertical gaps stay visually consistent.
  */
-async function createCardsFromCSV(file, { nameCol, emailCol, managerEmailCol, fieldCols }) {
+async function createCardsFromCSV(file, { nameCol, emailCol, managerEmailCol, fieldCols, layout = 'vertical' }) {
+  const isHorizontal = layout === 'horizontal';
   const text = await file.text();
   const { headers, rows } = parseCSV(text);
 
@@ -460,18 +497,30 @@ async function createCardsFromCSV(file, { nameCol, emailCol, managerEmailCol, fi
   let positionByIndex;
   let leafColMgrs = new Set();
   try {
-    ({ positionByIndex, leafColMgrs } = computeBuchheimLayout(tree, cardHeight));
-    applyLeafColLayout(tree, positionByIndex, leafColMgrs, cardHeight);
+    ({ positionByIndex, leafColMgrs } = computeBuchheimLayout(tree, cardHeight, layout));
+    if (!isHorizontal) applyLeafColLayout(tree, positionByIndex, leafColMgrs, cardHeight);
   } catch (err) {
     console.warn('Buchheim layout failed, falling back to grid:', err);
     positionByIndex = new Map();
-    const levelHeight = cardHeight + V_GAP;
-    for (const i of tree.validIndices) {
-      const { level, order, rowSize } = tree.indexToLevelAndOrder.get(i);
-      positionByIndex.set(i, {
-        x: (order - (rowSize - 1) / 2) * NODE_DISTANCE,
-        y: level * levelHeight,
-      });
+    if (isHorizontal) {
+      const colWidth  = CARD_WIDTH  + H_LAYOUT_LEVEL_GAP;
+      const rowHeight = cardHeight  + H_LAYOUT_SIBLING_GAP;
+      for (const i of tree.validIndices) {
+        const { level, order, rowSize } = tree.indexToLevelAndOrder.get(i);
+        positionByIndex.set(i, {
+          x: level * colWidth,
+          y: (order - (rowSize - 1) / 2) * rowHeight,
+        });
+      }
+    } else {
+      const levelHeight = cardHeight + V_GAP;
+      for (const i of tree.validIndices) {
+        const { level, order, rowSize } = tree.indexToLevelAndOrder.get(i);
+        positionByIndex.set(i, {
+          x: (order - (rowSize - 1) / 2) * NODE_DISTANCE,
+          y: level * levelHeight,
+        });
+      }
     }
   }
 
@@ -500,8 +549,9 @@ async function createCardsFromCSV(file, { nameCol, emailCol, managerEmailCol, fi
   }
 
   // Create connectors.
-  // Leaf-col edges: manager bottom-center → IC left-center (x:0.0, y:0.5).
-  // All other edges: manager bottom-center → child top-center (x:0.5, y:0).
+  // Horizontal layout: manager right-center → child left-center.
+  // Vertical leaf-col edges: manager bottom-center → IC left-center.
+  // Vertical regular edges: manager bottom-center → child top-center.
   for (const [mgr, emps] of tree.managerToEmployees) {
     const mgrCard = indexToCard.get(mgr);
     if (!mgrCard) continue;
@@ -509,12 +559,21 @@ async function createCardsFromCSV(file, { nameCol, emailCol, managerEmailCol, fi
     for (const emp of emps) {
       const empCard = indexToCard.get(emp);
       if (!empCard) continue;
+      let startPos, endPos;
+      if (isHorizontal) {
+        startPos = { x: 1,   y: 0.5 };
+        endPos   = { x: 0,   y: 0.5 };
+      } else if (isLeafCol) {
+        startPos = { x: 0.5, y: 1   };
+        endPos   = { x: 0,   y: 0.5 };
+      } else {
+        startPos = { x: 0.5, y: 1   };
+        endPos   = { x: 0.5, y: 0   };
+      }
       await miro.board.createConnector({
         shape: 'elbowed',
-        start: { item: mgrCard.id, position: { x: 0.5, y: 1 } },
-        end:   isLeafCol
-          ? { item: empCard.id, position: { x: 0.0, y: 0.5 } }
-          : { item: empCard.id, position: { x: 0.5, y: 0 } },
+        start: { item: mgrCard.id, position: startPos },
+        end:   { item: empCard.id, position: endPos   },
         style: { strokeColor: '#3d3d3d', strokeWidth: 1, endStrokeCap: 'arrow' },
       });
     }
@@ -565,6 +624,11 @@ function setupCreateChartButton() {
 // create-chart.html only: drag/drop + browse, three wizard views, loading overlay, Done → API.
 
 function setupFileUpload() {
+  // Page 1 (layout choice)
+  const viewLayout      = document.getElementById('view-layout');
+  const layoutOptions   = document.querySelectorAll('.layout-option');
+  const layoutNextBtn   = document.getElementById('layout-next-btn');
+  // Page 2 (upload)
   const input           = document.getElementById('file-upload');
   const browseBtn       = document.getElementById('browse-btn');
   const dropZone        = document.getElementById('drop-zone');
@@ -573,8 +637,9 @@ function setupFileUpload() {
   const nameEl          = document.getElementById('file-name');
   const dropErrorEl     = document.getElementById('drop-error');
   const nextBtn         = document.getElementById('next-btn');
+  const uploadBackBtn   = document.getElementById('upload-back-btn');
   const viewUpload      = document.getElementById('view-upload');
-  // Page 2
+  // Page 3
   const viewMapping     = document.getElementById('view-mapping');
   const nameSelect      = document.getElementById('map-name-col');
   const emailSelect     = document.getElementById('map-email-col');
@@ -593,6 +658,31 @@ function setupFileUpload() {
   const MAX_FIELDS  = 20;
   let selectedFile  = null;
   let csvHeaders    = [];
+  let selectedLayout = null; // 'vertical' | 'horizontal' — chosen on page 1
+
+  // ── Page 1: layout choice ─────────────────────────────────────────────────
+  layoutOptions.forEach((opt) => {
+    opt.addEventListener('click', () => {
+      selectedLayout = opt.dataset.layout;
+      layoutOptions.forEach((o) => o.setAttribute('aria-checked', String(o === opt)));
+      if (layoutNextBtn) layoutNextBtn.disabled = false;
+    });
+  });
+
+  if (layoutNextBtn) {
+    layoutNextBtn.addEventListener('click', () => {
+      if (!selectedLayout) return;
+      if (viewLayout) viewLayout.style.display = 'none';
+      if (viewUpload) viewUpload.style.display = 'flex';
+    });
+  }
+
+  if (uploadBackBtn) {
+    uploadBackBtn.addEventListener('click', () => {
+      if (viewUpload) viewUpload.style.display = 'none';
+      if (viewLayout) viewLayout.style.display = 'flex';
+    });
+  }
 
   // ── Drop zone helpers ──────────────────────────────────────────────────────
 
@@ -785,6 +875,7 @@ function setupFileUpload() {
         emailCol:       emailSelect.value,
         managerEmailCol: managerSelect.value,
         fieldCols,
+        layout:         selectedLayout || 'vertical',
       };
       try {
         if (loadingEl)  loadingEl.style.display  = 'flex';
