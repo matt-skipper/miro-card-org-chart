@@ -12,14 +12,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <script src="https://miro.com/app/static/sdk/v2/miro.js"></script>
     <title>Upload CSV file</title>
-    <script>
-      // Pull focus into our iframe on load so the modal's X button loses its auto-focus highlight.
-      window.addEventListener('load', function () {
-        document.body.tabIndex = -1;
-        document.body.focus();
-        document.body.removeAttribute('tabindex');
-      });
-    </script>
   </head>
   <body class="upload-modal">
     <!-- Loading overlay: covers the modal while cards are being created -->

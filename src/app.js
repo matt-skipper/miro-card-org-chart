@@ -29,6 +29,10 @@ const NODE_DISTANCE = CARD_WIDTH + H_GAP;
 /** Center-to-center vertical distance between depth levels */
 const LEVEL_HEIGHT = CARD_HEIGHT + V_GAP;
 const DEFAULT_CARD_THEME = '#5f94e0';
+const MAX_CSV_FILE_SIZE_BYTES = 5 * 1024 * 1024;
+const MAX_CSV_ROWS = 1000;
+const MAX_CSV_COLUMNS = 100;
+const MAX_CARDS_PER_IMPORT = 1000;
 
 // ─── Leaf Column Constants ────────────────────────────────────────────────────
 // Applied when a manager's entire direct team are leaves (no grandchildren).
@@ -86,6 +90,44 @@ function parseCSVLine(line) {
   }
   result.push(current.trim());
   return result;
+}
+
+function validateCsvFile(file) {
+  if (!file.name.toLowerCase().endsWith('.csv')) {
+    return 'Only CSV files are supported.';
+  }
+  if (file.size > MAX_CSV_FILE_SIZE_BYTES) {
+    return `CSV files must be ${Math.round(MAX_CSV_FILE_SIZE_BYTES / 1024 / 1024)} MB or smaller.`;
+  }
+  return '';
+}
+
+function validateCsvData({ headers, rows }) {
+  if (!headers.length) return 'The CSV file appears to be empty.';
+  if (headers.length > MAX_CSV_COLUMNS) {
+    return `CSV files can include up to ${MAX_CSV_COLUMNS} columns.`;
+  }
+  if (rows.length > MAX_CSV_ROWS) {
+    return `CSV files can include up to ${MAX_CSV_ROWS} data rows.`;
+  }
+  return '';
+}
+
+async function readValidatedCsvFile(file) {
+  const fileError = validateCsvFile(file);
+  if (fileError) throw new Error(fileError);
+  const text = await file.text();
+  const parsed = parseCSV(text);
+  const dataError = validateCsvData(parsed);
+  if (dataError) throw new Error(dataError);
+  return parsed;
+}
+
+function setSelectOptions(select, values, placeholderText = '') {
+  const options = [];
+  if (placeholderText) options.push(new Option(placeholderText, ''));
+  values.forEach((value) => options.push(new Option(value, value)));
+  select.replaceChildren(...options);
 }
 
 /** Convert raw string rows into objects keyed by header name. */
@@ -464,12 +506,14 @@ function getCardFieldsFromCsv(rec, includeHeaders, fieldCols) {
  */
 async function createCardsFromCSV(file, { nameCol, emailCol, managerEmailCol, fieldCols, layout = 'vertical' }) {
   const isHorizontal = layout === 'horizontal';
-  const text = await file.text();
-  const { headers, rows } = parseCSV(text);
+  const { headers, rows } = await readValidatedCsvFile(file);
 
   const records = rowsToRecords(headers, rows);
   const mapping = { nameCol, emailCol, managerEmailCol };
   const tree = buildOrgTree(records, mapping);
+  if (tree.validIndices.length > MAX_CARDS_PER_IMPORT) {
+    throw new Error(`A single import can create up to ${MAX_CARDS_PER_IMPORT} cards.`);
+  }
 
   const includeHeaders = document.getElementById('include-header-values')?.checked ?? false;
 
@@ -620,6 +664,14 @@ function setupCreateChartButton() {
   });
 }
 
+function setupModalInitialFocus() {
+  if (!document.body.classList.contains('upload-modal')) return;
+  // Pull focus into our iframe so the modal's X button loses its auto-focus highlight.
+  document.body.tabIndex = -1;
+  document.body.focus({ preventScroll: true });
+  document.body.removeAttribute('tabindex');
+}
+
 // ─── File Upload (modal) ──────────────────────────────────────────────────────
 // create-chart.html only: drag/drop + browse, three wizard views, loading overlay, Done → API.
 
@@ -697,6 +749,12 @@ function setupFileUpload() {
   }
 
   function selectFile(file) {
+    const fileError = validateCsvFile(file);
+    if (fileError) {
+      clearFile();
+      showDropError(fileError);
+      return;
+    }
     selectedFile = file;
     clearDropError();
     if (nameEl)      nameEl.textContent          = file.name;
@@ -735,10 +793,6 @@ function setupFileUpload() {
     dropZone.addEventListener('drop', (e) => {
       const file = e.dataTransfer?.files?.[0];
       if (!file) return;
-      if (!file.name.toLowerCase().endsWith('.csv')) {
-        showDropError('Only CSV files supported');
-        return;
-      }
       selectFile(file);
     });
   }
@@ -746,19 +800,16 @@ function setupFileUpload() {
   // ── Page 1 → Page 2 ───────────────────────────────────────────────────────
   nextBtn.addEventListener('click', async () => {
     if (!selectedFile) return;
-    const text = await selectedFile.text();
-    const { headers } = parseCSV(text);
-    if (!headers.length) {
-      await miro.board.notifications.showError('The CSV file appears to be empty.');
+    let headers;
+    try {
+      ({ headers } = await readValidatedCsvFile(selectedFile));
+    } catch (err) {
+      await miro.board.notifications.showError(err.message || String(err));
       return;
     }
     csvHeaders = headers;
-    const placeholder = '<option value="">— select column —</option>';
-    const options = headers
-      .map((h) => `<option value="${escapeHtml(h)}">${escapeHtml(h)}</option>`)
-      .join('');
     [nameSelect, emailSelect, managerSelect].forEach((sel) => {
-      if (sel) sel.innerHTML = placeholder + options;
+      if (sel) setSelectOptions(sel, headers, '— select column —');
     });
     if (mappingNextBtn) mappingNextBtn.disabled = true;
     if (viewUpload)  viewUpload.style.display  = 'none';
@@ -814,16 +865,28 @@ function setupFileUpload() {
 
   function populateFieldsList(remainingCols) {
     if (!fieldsListEl) return;
-    fieldsListEl.innerHTML = remainingCols.map((col, i) => {
-      const checked  = i < MAX_FIELDS ? 'checked' : '';
-      const disabled = i >= MAX_FIELDS ? 'disabled' : '';
-      return `<div class="field-item">
-        <label class="checkbox">
-          <input type="checkbox" class="field-checkbox" value="${escapeHtml(col)}" ${checked} ${disabled} />
-          <span>${escapeHtml(col)}</span>
-        </label>
-      </div>`;
-    }).join('');
+    const items = remainingCols.map((col, i) => {
+      const item = document.createElement('div');
+      item.className = 'field-item';
+
+      const label = document.createElement('label');
+      label.className = 'checkbox';
+
+      const checkbox = document.createElement('input');
+      checkbox.type = 'checkbox';
+      checkbox.className = 'field-checkbox';
+      checkbox.value = col;
+      checkbox.checked = i < MAX_FIELDS;
+      checkbox.disabled = i >= MAX_FIELDS;
+
+      const text = document.createElement('span');
+      text.textContent = col;
+
+      label.append(checkbox, text);
+      item.append(label);
+      return item;
+    });
+    fieldsListEl.replaceChildren(...items);
     enforceFieldMax();
     syncSelectAll();
     fieldsListEl.querySelectorAll('.field-checkbox').forEach((cb) => {
@@ -1143,15 +1206,39 @@ function setupConditionalFormatting() {
   function renderColorSwatches() {
     if (!formatColor) return;
     const allColors = [...CARD_THEME_PALETTE, ...customColors];
-    formatColor.innerHTML =
-      allColors.map((hex) => {
-        const checked = hex.toLowerCase() === selectedThemeColor.toLowerCase() ? 'true' : 'false';
-        const border  = (hex === '#f2f2f2' || hex === '#ffffff') ? 'border:1px solid #cfcfcf;' : '';
-        const isCustom = customColors.includes(hex);
-        const tooltip  = isCustom ? `<span class="swatch-hex-tooltip">${hex.toUpperCase()}</span>` : '';
-        return `<button type="button" class="color-swatch-btn${isCustom ? ' color-swatch-custom' : ''}" role="radio" aria-label="Color ${hex}" aria-checked="${checked}" data-color="${hex}" style="background-color:${hex};${border}">${tooltip}</button>`;
-      }).join('') +
-      `<button type="button" class="color-swatch-btn color-swatch-add" aria-label="Add custom color">+<span class="swatch-add-tooltip">Add a custom color</span></button>`;
+    const swatches = allColors.map((hex) => {
+      const swatch = document.createElement('button');
+      const isCustom = customColors.includes(hex);
+      swatch.type = 'button';
+      swatch.className = `color-swatch-btn${isCustom ? ' color-swatch-custom' : ''}`;
+      swatch.setAttribute('role', 'radio');
+      swatch.setAttribute('aria-label', `Color ${hex}`);
+      swatch.setAttribute('aria-checked', String(hex.toLowerCase() === selectedThemeColor.toLowerCase()));
+      swatch.dataset.color = hex;
+      swatch.style.backgroundColor = hex;
+      if (hex === '#f2f2f2' || hex === '#ffffff') swatch.style.border = '1px solid #cfcfcf';
+
+      if (isCustom) {
+        const tooltip = document.createElement('span');
+        tooltip.className = 'swatch-hex-tooltip';
+        tooltip.textContent = hex.toUpperCase();
+        swatch.append(tooltip);
+      }
+      return swatch;
+    });
+
+    const addButton = document.createElement('button');
+    addButton.type = 'button';
+    addButton.className = 'color-swatch-btn color-swatch-add';
+    addButton.setAttribute('aria-label', 'Add custom color');
+    addButton.append('+');
+
+    const addTooltip = document.createElement('span');
+    addTooltip.className = 'swatch-add-tooltip';
+    addTooltip.textContent = 'Add a custom color';
+    addButton.append(addTooltip);
+
+    formatColor.replaceChildren(...swatches, addButton);
   }
 
   renderColorSwatches();
@@ -1188,9 +1275,7 @@ function setupConditionalFormatting() {
           if (k) fieldKeysSet.add(k);
         });
       const fieldKeys = [...fieldKeysSet].sort();
-      formatField.innerHTML = fieldKeys
-        .map((k) => `<option value="${escapeHtml(k)}">${escapeHtml(k)}</option>`)
-        .join('');
+      setSelectOptions(formatField, fieldKeys);
       if (formatSection) formatSection.style.display = fieldKeys.length ? 'block' : 'none';
       await miro.board.notifications.showInfo(
         `Loaded ${selectedCards.length} card(s). ${fieldKeys.length} field(s) available.`,
@@ -1230,13 +1315,6 @@ function setupConditionalFormatting() {
   });
 }
 
-/** Escape HTML to prevent XSS when rendering field names as option labels. */
-function escapeHtml(str) {
-  const div = document.createElement('div');
-  div.textContent = str;
-  return div.innerHTML;
-}
-
 // ─── Single Card Details ──────────────────────────────────────────────────────
 // app.html only: load one selected card, toggle edit mode, persist field text back via card.sync().
 
@@ -1255,19 +1333,31 @@ function setupSingleCardDetails() {
   function renderFields(editable) {
     const fields = currentCard.fields || [];
     if (!fields.length) {
-      fieldsEl.innerHTML = '<p class="body-small subtext">This card has no fields.</p>';
+      const emptyState = document.createElement('p');
+      emptyState.className = 'body-small subtext';
+      emptyState.textContent = 'This card has no fields.';
+      fieldsEl.replaceChildren(emptyState);
       return;
     }
-    fieldsEl.innerHTML = fields.map((f, i) => {
-      const label = escapeHtml(f.tooltip || `Field ${i + 1}`);
-      const value = escapeHtml(stripHeaderPrefix(f.value, f.tooltip));
-      return `
-        <div class="form-group">
-          <label class="body-small">${label}</label>
-          <input type="text" class="input${editable ? ' card-field-input' : ''}"
-            data-field-index="${i}" value="${value}"${editable ? '' : ' readonly'} />
-        </div>`;
-    }).join('');
+    const fieldRows = fields.map((f, i) => {
+      const row = document.createElement('div');
+      row.className = 'form-group';
+
+      const label = document.createElement('label');
+      label.className = 'body-small';
+      label.textContent = f.tooltip || `Field ${i + 1}`;
+
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.className = editable ? 'input card-field-input' : 'input';
+      input.dataset.fieldIndex = String(i);
+      input.value = stripHeaderPrefix(f.value, f.tooltip);
+      input.readOnly = !editable;
+
+      row.append(label, input);
+      return row;
+    });
+    fieldsEl.replaceChildren(...fieldRows);
   }
 
   loadBtn.addEventListener('click', async () => {
@@ -1349,6 +1439,7 @@ function init() {
     document.addEventListener('DOMContentLoaded', () => {
       setupCollapsibleSections();
       setupCreateChartButton();
+      setupModalInitialFocus();
       setupFileUpload();
       setupConditionalFormatting();
       setupSingleCardDetails();
@@ -1356,6 +1447,7 @@ function init() {
   } else {
     setupCollapsibleSections();
     setupCreateChartButton();
+    setupModalInitialFocus();
     setupFileUpload();
     setupConditionalFormatting();
     setupSingleCardDetails();

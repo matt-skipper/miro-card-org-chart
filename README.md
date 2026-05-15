@@ -49,7 +49,7 @@ npm install
 ### 2. Run locally
 
 ```bash
-npm start
+npm run dev
 ```
 
 The Vite dev server listens on **http://localhost:3009** (see `vite.config.js`).
@@ -71,10 +71,21 @@ Static output is written to **`dist/`**. Host `dist/` on any static host and poi
 Preview the build locally:
 
 ```bash
-npm run serve
+npm start
 ```
 
-(`vite preview` defaults to port **4173** unless overridden.)
+`npm start` serves `dist/` with the production Node static server on **http://localhost:8080** by default, or the `PORT` value provided by the host.
+
+### 5. Deploy to Elastic Beanstalk
+
+Elastic Beanstalk runs `npm start` for the web process. This project builds the static Vite app during deployment via `.platform/hooks/predeploy/01-build.sh`, then `server.js` serves exact files from `dist/` on `${PORT:-8080}`.
+
+The EB start path is:
+
+```bash
+npm run build
+npm start
+```
 
 ---
 
@@ -130,9 +141,10 @@ A sample file lives at [`public/Miro_OrgChart_Template.csv`](./public/Miro_OrgCh
 
 | Command | Description |
 | ------- | ----------- |
-| `npm start` | Vite dev server (`localhost:3009` by default) |
+| `npm run dev` | Vite dev server (`localhost:3009` by default) |
 | `npm run build` | Production build → `dist/` |
-| `npm run serve` | Preview production build (`vite preview`) |
+| `npm start` | Serve the production `dist/` folder on `${PORT:-8080}` |
+| `npm run serve` | Preview production build with Vite (`vite preview`) |
 
 ---
 

@@ -16,6 +16,48 @@ const allHtmlEntries = fs
     return acc;
   }, {});
 
+const contentSecurityPolicy = [
+  "default-src 'self'",
+  "base-uri 'self'",
+  "object-src 'none'",
+  "script-src 'self' https://miro.com https://*.miro.com",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob: https://miro.com https://*.miro.com",
+  "font-src 'self' data: https://miro.com https://*.miro.com",
+  "connect-src 'self' https://miro.com https://*.miro.com wss://*.miro.com",
+  "frame-ancestors https://miro.com https://*.miro.com",
+  "form-action 'none'",
+].join('; ');
+
+const securityHeaders = {
+  'Content-Security-Policy': contentSecurityPolicy,
+  'Strict-Transport-Security': 'max-age=63072000; includeSubDomains; preload',
+  'X-Content-Type-Options': 'nosniff',
+  'Referrer-Policy': 'strict-origin-when-cross-origin',
+  'Permissions-Policy': [
+    'accelerometer=()',
+    'autoplay=()',
+    'camera=()',
+    'clipboard-read=()',
+    'clipboard-write=(self)',
+    'display-capture=()',
+    'encrypted-media=()',
+    'fullscreen=(self)',
+    'geolocation=()',
+    'gyroscope=()',
+    'magnetometer=()',
+    'microphone=()',
+    'midi=()',
+    'payment=()',
+    'picture-in-picture=()',
+    'publickey-credentials-get=()',
+    'screen-wake-lock=()',
+    'usb=()',
+    'web-share=()',
+    'xr-spatial-tracking=()',
+  ].join(', '),
+};
+
 // https://vitejs.dev/config/
 export default defineConfig({
   build: {
@@ -26,5 +68,9 @@ export default defineConfig({
   server: {
     // Keep stable for Miro Developer Portal “App URL” during local testing.
     port: 3009,
+    headers: securityHeaders,
+  },
+  preview: {
+    headers: securityHeaders,
   },
 });
