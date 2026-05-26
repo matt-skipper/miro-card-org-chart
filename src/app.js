@@ -712,6 +712,15 @@ function setupFileUpload() {
   let csvHeaders    = [];
   let selectedLayout = null; // 'vertical' | 'horizontal' — chosen on page 1
 
+  const wizardViews = [viewLayout, viewUpload, viewMapping, viewFields];
+  function showWizardView(activeView) {
+    wizardViews.forEach((view) => {
+      if (view) view.style.display = view === activeView ? 'flex' : 'none';
+    });
+  }
+
+  showWizardView(viewLayout || viewUpload);
+
   // ── Page 1: layout choice ─────────────────────────────────────────────────
   layoutOptions.forEach((opt) => {
     opt.addEventListener('click', () => {
@@ -724,15 +733,13 @@ function setupFileUpload() {
   if (layoutNextBtn) {
     layoutNextBtn.addEventListener('click', () => {
       if (!selectedLayout) return;
-      if (viewLayout) viewLayout.style.display = 'none';
-      if (viewUpload) viewUpload.style.display = 'flex';
+      showWizardView(viewUpload);
     });
   }
 
   if (uploadBackBtn) {
     uploadBackBtn.addEventListener('click', () => {
-      if (viewUpload) viewUpload.style.display = 'none';
-      if (viewLayout) viewLayout.style.display = 'flex';
+      showWizardView(viewLayout);
     });
   }
 
@@ -812,14 +819,12 @@ function setupFileUpload() {
       if (sel) setSelectOptions(sel, headers, '— select column —');
     });
     if (mappingNextBtn) mappingNextBtn.disabled = true;
-    if (viewUpload)  viewUpload.style.display  = 'none';
-    if (viewMapping) viewMapping.style.display = 'flex';
+    showWizardView(viewMapping);
   });
 
   // ── Page 2 → Page 1 ───────────────────────────────────────────────────────
   if (backBtn) backBtn.addEventListener('click', () => {
-    if (viewMapping) viewMapping.style.display = 'none';
-    if (viewUpload)  viewUpload.style.display  = 'flex';
+    showWizardView(viewUpload);
   });
 
   // Enable "Next" on page 2 when all 3 dropdowns have values
@@ -915,15 +920,13 @@ function setupFileUpload() {
       const mappedCols    = new Set([nameSelect.value, emailSelect.value, managerSelect.value]);
       const remainingCols = csvHeaders.filter((h) => !mappedCols.has(h));
       populateFieldsList(remainingCols);
-      if (viewMapping) viewMapping.style.display = 'none';
-      if (viewFields)  viewFields.style.display  = 'flex';
+      showWizardView(viewFields);
     });
   }
 
   // ── Page 3 → Page 2 ───────────────────────────────────────────────────────
   if (fieldsBackBtn) fieldsBackBtn.addEventListener('click', () => {
-    if (viewFields)  viewFields.style.display  = 'none';
-    if (viewMapping) viewMapping.style.display = 'flex';
+    showWizardView(viewMapping);
   });
 
   // ── Done: create org chart ────────────────────────────────────────────────
@@ -942,14 +945,14 @@ function setupFileUpload() {
       };
       try {
         if (loadingEl)  loadingEl.style.display  = 'flex';
-        if (viewFields) viewFields.style.display = 'none';
+        showWizardView(null);
         await createCardsFromCSV(selectedFile, mapping);
         clearFile();
         await miro.board.ui.closeModal();
       } catch (err) {
         console.error(err);
         if (loadingEl)  loadingEl.style.display  = 'none';
-        if (viewFields) viewFields.style.display = 'flex';
+        showWizardView(viewFields);
         await miro.board.notifications.showError(
           'Failed to create cards: ' + (err.message || String(err)),
         );
