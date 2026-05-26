@@ -8,10 +8,13 @@ See this Miro board for additional documentation: https://miro.com/app/board/uXj
 
 ## Features
 
-- **CSV wizard (3 steps)** — Upload a `.csv` file, map columns to hierarchy roles (employee name, employee ID, supervisor ID), then choose which extra columns become **card fields** (up to **20** fields per card). Optional **Include header values** prefixes values as `ColumnName: value` on the card.
-- **Layout** — Positions are computed with a **Buchheim** tree layout (linear time, suitable for large orgs). If layout throws, the app **falls back** to a simple level-by-level grid. **Leaf-column** mode: managers whose **entire direct team are individual contributors** (2+ reports, no grandchildren) get a **vertical stack** of ICs to the right, with connectors from manager **bottom** to IC **left** edge; other links use manager **bottom** to child **top**.
+- **CSV wizard (4 steps)** — Choose **vertical** or **horizontal** layout, upload a `.csv` file, map columns to hierarchy roles (employee name, employee ID, supervisor ID), then choose which extra columns become **card fields** (up to **20** fields per card). Optional **Include header values** prefixes values as `ColumnName: value` on the card.
+- **Vertical and horizontal layouts** — Positions are computed with a **Buchheim** tree layout (linear time, suitable for large orgs). Vertical charts grow top-to-bottom. Horizontal charts grow left-to-right, stack siblings vertically, and draw connectors from manager **right** edge to child **left** edge. If layout throws, the app **falls back** to a simple grid in the selected orientation.
+- **Leaf-column mode for vertical charts** — Managers whose **entire direct team are individual contributors** (2+ reports, no grandchildren) get a **vertical stack** of ICs to the right, with connectors from manager **bottom** to IC **left** edge; other vertical links use manager **bottom** to child **top**. Horizontal charts do not use the leaf-column post-process because siblings already stack vertically.
+- **Import hardening** — CSV uploads are validated before import: `.csv` files only, max **5 MB**, max **100** columns, max **1,000** data rows, and max **1,000** cards per import.
 - **Conditional formatting** — Select cards on the board → **Load selected cards** → pick field, text or numeric condition, value → **card theme** swatch (preset palette, **custom colors** via gradient picker and optional **eyedropper** where the browser supports it) → optional **fill background** → **Apply to matching cards**.
 - **Single card details** — Select one card → **Load selected card** → view fields; **Edit fields** / **Save changes** updates the card on the board (preserves “header:” style prefixes when present).
+- **Production hosting support** — The production build can be served by `server.js` for Elastic Beanstalk or any Node host. Security headers are applied in the Node server, Vite dev/preview server, and `public/_headers` for compatible static hosts.
 - **Mirotone UI** — Panel and modal use [Mirotone](https://www.mirotone.xyz/) for a native Miro look.
 
 ---
@@ -23,8 +26,9 @@ See this Miro board for additional documentation: https://miro.com/app/board/uXj
 | [Vite](https://vitejs.dev/) | Dev server, multi-page build (`index.html`, `app.html`, `create-chart.html`) |
 | [Miro Web SDK v2](https://developers.miro.com/docs/web-sdk-reference) | Board UI, cards, connectors, selection, modals |
 | [Mirotone](https://www.mirotone.xyz/) | CSS design system for the panel and upload modal |
+| Node `http` server | Serves the production `dist/` build with security headers |
 
-Layout is implemented in `src/app.js` (Buchheim + leaf-column post-process); there is **no** ELK/elkjs dependency.
+Layout is implemented in `src/app.js` (Buchheim + vertical leaf-column post-process + horizontal axis swap); there is **no** ELK/elkjs dependency.
 
 ---
 
@@ -52,7 +56,7 @@ npm install
 npm run dev
 ```
 
-The Vite dev server listens on **http://localhost:3009** (see `vite.config.js`).
+The Vite dev server listens on **http://localhost:3009** (see `vite.config.js`) and serves the same security headers used by production.
 
 ### 3. Connect the app in Miro
 
@@ -66,7 +70,7 @@ The Vite dev server listens on **http://localhost:3009** (see `vite.config.js`).
 npm run build
 ```
 
-Static output is written to **`dist/`**. Host `dist/` on any static host and point the Miro app **App URL** at that deployment.
+Static output is written to **`dist/`**. Host `dist/` on any static host, or serve it with `npm start`, and point the Miro app **App URL** at that deployment.
 
 Preview the build locally:
 
@@ -74,7 +78,7 @@ Preview the build locally:
 npm start
 ```
 
-`npm start` serves `dist/` with the production Node static server on **http://localhost:8080** by default, or the `PORT` value provided by the host.
+`npm start` serves `dist/` with the production Node static server on **http://localhost:8080** by default, or the `PORT` value provided by the host. The server only serves exact built files and adds security headers including CSP, HSTS, `X-Content-Type-Options`, `Referrer-Policy`, and `Permissions-Policy`.
 
 ### 5. Deploy to Elastic Beanstalk
 
@@ -91,7 +95,7 @@ npm start
 
 ## CSV and column mapping
 
-The file must include a **header row**. You are not limited to fixed column names: the **Map columns** step binds your CSV headers to three roles:
+The file must be a `.csv`, be **5 MB or smaller**, and include a **header row**. A single import supports up to **100 columns**, **1,000 data rows**, and **1,000 cards**. You are not limited to fixed column names: the **Map columns** step binds your CSV headers to three roles:
 
 | Role in UI | Purpose |
 | ---------- | ------- |
@@ -109,7 +113,7 @@ A sample file lives at [`public/Miro_OrgChart_Template.csv`](./public/Miro_OrgCh
 
 ### Side panel (`app.html`)
 
-1. **Create new org chart** — Opens a modal (`create-chart.html`): upload CSV → map hierarchy columns → choose extra fields → **Done** creates cards and connectors near the **current viewport**, then zooms to the first created card.
+1. **Create new org chart** — Opens a modal (`create-chart.html`): choose vertical or horizontal layout → upload CSV → map hierarchy columns → choose extra fields → **Done** creates cards and connectors near the **current viewport**, then zooms to the first created card.
 2. **Conditional formatting** — Expand the section → select target cards on the board → **Load selected cards** → set field / condition / value / color → **Apply to matching cards**.
 3. **Single card details** — Expand the section → select **one** card → **Load selected card** → **Edit fields** if needed → **Save changes**.
 
@@ -121,15 +125,17 @@ A sample file lives at [`public/Miro_OrgChart_Template.csv`](./public/Miro_OrgCh
 .
 ├── index.html            # Local landing; loads Miro SDK + src/index.js (icon → panel)
 ├── app.html              # Side panel: org chart trigger, formatting, single-card editor
-├── create-chart.html     # Modal: 3-step CSV upload (same JS bundle as panel)
+├── create-chart.html     # Modal: 4-step layout + CSV upload flow (same JS bundle as panel)
 ├── public/
-│   └── Miro_OrgChart_Template.csv
+│   ├── Miro_OrgChart_Template.csv
+│   └── _headers          # Security headers for compatible static hosts
 ├── src/
 │   ├── index.js          # init(): icon:click → openPanel({ url: 'app.html' })
 │   ├── app.js            # CSV → tree → Buchheim layout → cards/connectors; all panel/modal UI
 │   └── assets/
 │       └── style.css     # Mirotone import + app/modal layout
 ├── vite.config.js        # All *.html at repo root as Rollup inputs; dev server port 3009
+├── server.js             # Production static server for dist/ with security headers
 └── package.json
 ```
 
@@ -143,7 +149,7 @@ A sample file lives at [`public/Miro_OrgChart_Template.csv`](./public/Miro_OrgCh
 | ------- | ----------- |
 | `npm run dev` | Vite dev server (`localhost:3009` by default) |
 | `npm run build` | Production build → `dist/` |
-| `npm start` | Serve the production `dist/` folder on `${PORT:-8080}` |
+| `npm start` | Serve the production `dist/` folder on `${PORT:-8080}` with security headers |
 | `npm run serve` | Preview production build with Vite (`vite preview`) |
 
 ---
