@@ -1,0 +1,795 @@
+/* Miro design system (buttons, grid, typography) for consistent panel UI */
+@import 'mirotone/dist/styles.css';
+
+*,
+*:before,
+*:after {
+  box-sizing: border-box;
+}
+
+body {
+  display: flex;
+}
+
+/* Panel content area: full width, scrollable, uses Miro spacing tokens */
+#root {
+  width: 100%;
+  overflow: auto;
+  padding: var(--space-medium);
+}
+
+/* Pull inputs and selects away from both edges so their focus
+   ring isn't clipped by #root's overflow:auto boundary */
+#root .input,
+#root .select {
+  margin-left: 3px;
+  width: calc(100% - 6px);
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Mirotone form template-inspired layout for panel flows */
+.form-view {
+  grid-auto-rows: 1fr auto;
+  row-gap: var(--space-medium);
+}
+
+.form-view-main-content {
+  align-self: flex-start;
+}
+
+.form-section {
+  margin-top: var(--space-medium);
+  padding-top: var(--space-medium);
+  border-top: 1px solid var(--color-line-subtle, #e0e0e0);
+}
+
+.subtext {
+  margin-top: var(--space-xsmall);
+}
+
+.form-load-button {
+  margin-top: var(--space-small);
+}
+
+.color-swatch-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-small);
+  margin-top: var(--space-xsmall);
+  margin-left: 4px;
+  max-width: 220px;
+}
+
+.color-swatch-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 999px;
+  border: 1px solid var(--color-line-subtle, #9e9e9e);
+  cursor: pointer;
+  padding: 0;
+  outline: none;
+  transition: transform 80ms ease-out, box-shadow 80ms ease-out;
+}
+
+.color-swatch-btn:hover {
+  transform: translateY(-1px);
+}
+
+.color-swatch-btn[aria-checked='true'] {
+  box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--color-primary, #4262ff);
+}
+
+/* Custom color swatch — shows hex tooltip on hover */
+.color-swatch-custom {
+  position: relative;
+}
+
+.swatch-hex-tooltip {
+  position: absolute;
+  top: calc(100% + 7px);
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  padding: 4px 7px;
+  background: #1a1a1a;
+  color: #fff;
+  font-family: monospace;
+  font-size: 11px;
+  font-weight: 400;
+  border-radius: 6px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 120ms ease;
+  z-index: 200;
+}
+
+.swatch-hex-tooltip::after {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 4px solid transparent;
+  border-bottom-color: #1a1a1a;
+}
+
+.color-swatch-custom:hover .swatch-hex-tooltip {
+  opacity: 1;
+}
+
+/* "+" button at the end of the swatch grid */
+.color-swatch-add {
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: var(--color-text-secondary, #808080);
+  font-size: 28px;
+  font-weight: 300;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.color-swatch-add:hover {
+  color: var(--color-text-primary, #1a1a1a);
+  transform: none;
+}
+
+.swatch-add-tooltip {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+  padding: 8px 12px;
+  background: #1a1a1a;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 400;
+  border-radius: 8px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 120ms ease;
+  z-index: 200;
+}
+
+/* Arrow pointing up */
+.swatch-add-tooltip::after {
+  content: '';
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-bottom-color: #1a1a1a;
+}
+
+.color-swatch-add:hover .swatch-add-tooltip {
+  opacity: 1;
+}
+
+.form-primary-action {
+  width: 100%;
+  text-align: center;
+}
+
+/* ── Loading overlay ──────────────────────────────────────────────────────── */
+/* Covers the full modal while the org chart is being created.                */
+/* Controlled via JS: display toggled between 'none' and 'flex'.              */
+
+#view-loading {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: #fff;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-medium);
+  z-index: 100;
+}
+
+.loading-spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid var(--color-line-subtle, #e0e0e0);
+  border-top-color: var(--color-primary, #4262ff);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Upload modal layout ──────────────────────────────────────────────────── */
+
+.upload-modal #root {
+  padding: 22px 28px 24px;
+  display: flex;
+  flex-direction: column;
+}
+
+.upload-title {
+  font-size: 24px;
+  font-weight: 400;
+  line-height: 1.2;
+  margin: 0 0 18px;
+  color: var(--color-text-primary, #1a1a1a);
+}
+
+.upload-prereqs {
+  margin-bottom: 14px;
+}
+
+.upload-prereqs p {
+  font-size: 14px;
+  font-weight: 700;
+  margin: 0 0 6px;
+  color: var(--color-text-primary, #1a1a1a);
+}
+
+.upload-prereqs ul {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-text-primary, #1a1a1a);
+}
+
+.upload-prereqs li + li {
+  margin-top: 4px;
+}
+
+/* ── Download template link ───────────────────────────────────────────────── */
+
+.download-template-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 14px;
+  color: var(--color-primary, #4262ff);
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.download-template-link:hover {
+  text-decoration: underline;
+}
+
+/* ── Drop zone ────────────────────────────────────────────────────────────── */
+
+.drop-zone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 110px;
+  padding: 20px 16px;
+  margin-bottom: 4px;
+  border: 1.5px dashed #c8c8c8;
+  border-radius: 8px;
+  background: #fff;
+  text-align: center;
+  cursor: default;
+  user-select: none;
+  transition: border-color 150ms ease, background 150ms ease;
+}
+
+.drop-zone--active {
+  border-color: var(--color-primary, #4262ff);
+  background: #eef0ff;
+}
+
+.drop-zone--error {
+  border-color: #d93025;
+}
+
+.drop-error-msg {
+  display: none;
+  margin: 0px 0 0;
+  font-size: 12px;
+  color: #d93025;
+}
+
+.drop-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+/* "Drop a .csv file or browse" */
+.drop-hint {
+  margin: 0;
+  font-size: 14px;
+  color: var(--color-text-primary, #333);
+}
+
+.browse-link {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--color-primary, #4262ff);
+  cursor: pointer;
+  line-height: inherit;
+}
+
+.browse-link:hover {
+  text-decoration: underline;
+}
+
+/* Filled state: filename + replace hint */
+.drop-filename {
+  margin: 0;
+  font-size: 14px;
+  color: var(--color-text-primary, #333);
+  word-break: break-all;
+}
+
+.drop-replace-hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--color-text-secondary, #808080);
+}
+
+/* ── Tooltip ──────────────────────────────────────────────────────────────── */
+
+.checkbox-with-tooltip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tooltip-anchor {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  line-height: 0;
+  margin-left: 5px;
+  margin-top: 5px;
+  transform: translateY(-8px); /* compensate for Mirotone checkbox label's internal spacing */
+  color: var(--color-text-secondary, #a0a0a0);
+  cursor: default;
+}
+
+.tooltip-anchor svg {
+  display: block;
+}
+
+.tooltip-text {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  right: -4px;
+  width: 220px;
+  padding: 10px 12px;
+  background: #1a1a1a;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.45;
+  border-radius: 8px;
+  pointer-events: none;
+  white-space: normal;
+  opacity: 0;
+  transition: opacity 120ms ease;
+  z-index: 200;
+}
+
+.tooltip-anchor:hover .tooltip-text {
+  opacity: 1;
+}
+
+/* ── Next button ──────────────────────────────────────────────────────────── */
+
+.upload-next-btn {
+  align-self: flex-start;
+  width: auto !important;
+}
+
+
+/* ── Collapsible sections (panel) ─────────────────────────────────────────── */
+/* Section header becomes a full-width button; chevron rotates when open.      */
+
+.section-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+}
+
+.section-toggle:focus-visible {
+  outline: 2px solid var(--color-primary, #4262ff);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.chevron-icon {
+  flex-shrink: 0;
+  margin-left: var(--space-small, 8px);
+  color: var(--color-text-secondary, #808080);
+  transition: transform 220ms ease;
+}
+
+.collapsible-section.is-open .chevron-icon {
+  transform: rotate(180deg);
+}
+
+/* max-height trick: animates open/close without knowing the content height. */
+.section-body {
+  overflow: hidden;
+  max-height: 0;
+  transition: max-height 280ms ease;
+}
+
+.collapsible-section.is-open .section-body {
+  max-height: 9999px;
+}
+
+/* ── Upload / mapping view containers ────────────────────────────────────── */
+/* Each view is a flex column; only one is visible at a time.                  */
+
+#view-layout {
+  display: flex;
+  flex-direction: column;
+}
+
+#view-upload {
+  display: none; /* shown by JS when user clicks Next on the layout page */
+  flex-direction: column;
+}
+
+#view-mapping {
+  display: none; /* shown by JS when user clicks Next on the upload page */
+  flex-direction: column;
+}
+
+#view-fields {
+  display: none; /* shown by JS when user clicks Next on the mapping page */
+  flex-direction: column;
+}
+
+/* ── Choose layout view (page 1 of upload flow) ──────────────────────────── */
+
+.layout-title {
+  text-align: center;
+  margin: 8px 0 24px;
+}
+
+.layout-options {
+  display: flex;
+  justify-content: center;
+  gap: 18px;
+  margin-bottom: 22px;
+}
+
+.layout-option {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: 150px;
+  padding: 18px 12px 12px;
+  background: #fff;
+  border: 1.5px solid #e0e0e0;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+  font: inherit;
+  color: inherit;
+}
+
+.layout-option:hover {
+  border-color: #1a1a1a;
+}
+
+.layout-option[aria-checked='true'] {
+  border-color: var(--color-primary, #4262ff);
+  box-shadow: inset 0 0 0 1px var(--color-primary, #4262ff);
+}
+
+.layout-option:focus-visible {
+  outline: 2px solid var(--color-primary, #4262ff);
+  outline-offset: 2px;
+}
+
+.layout-option-check {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid #c8c8c8;
+  border-radius: 3px;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.layout-option-check svg {
+  opacity: 0;
+}
+
+.layout-option[aria-checked='true'] .layout-option-check {
+  border-color: var(--color-primary, #4262ff);
+  background: var(--color-primary, #4262ff);
+}
+
+.layout-option[aria-checked='true'] .layout-option-check svg {
+  opacity: 1;
+}
+
+.layout-option-thumb {
+  width: 100%;
+  height: 84px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.layout-option-thumb svg {
+  width: 100%;
+  height: 100%;
+}
+
+.layout-option-label {
+  font-size: 14px;
+  color: var(--color-text-primary, #1a1a1a);
+  text-align: center;
+}
+
+.next-step-hint {
+  margin: 8px 0 0;
+  font-size: 12px;
+  color: var(--color-text-secondary, #808080);
+}
+
+/* ── Column mapping view (page 2 of upload flow) ─────────────────────────── */
+
+.mapping-description {
+  font-size: 14px;
+  color: var(--color-text-primary, #333);
+  line-height: 1.5;
+  margin: 0 0 22px;
+}
+
+.mapping-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 28px;
+}
+
+.mapping-row {
+  display: grid;
+  grid-template-columns: 130px 1fr;
+  align-items: center;
+  gap: 12px;
+}
+
+.mapping-label {
+  font-size: 14px;
+  color: var(--color-text-primary, #333);
+}
+
+.mapping-actions {
+  display: flex;
+  gap: 10px;
+}
+
+/* ── Additional fields view (page 3 of upload flow) ──────────────────────── */
+
+.fields-step-label {
+  font-size: 13px;
+  color: var(--color-text-secondary, #808080);
+  margin: 0 0 4px;
+}
+
+.fields-select-all-row {
+  margin-top: 4px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--color-line-subtle, #e0e0e0);
+}
+
+.fields-list {
+  margin-top: 4px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.field-item {
+  padding: 5px 0;
+}
+
+/* Grey out labels of disabled (over-limit) checkboxes */
+.field-item input[type='checkbox']:disabled + span {
+  opacity: 0.4;
+}
+
+/* ── Gradient color picker popup ─────────────────────────────────────────────── */
+
+#color-picker-popup {
+  display: none;
+  position: fixed;
+  z-index: 9999;
+  flex-direction: column;
+  gap: 10px;
+  padding: 10px;
+  width: 224px;
+  background: #fff;
+  border: 1px solid var(--color-line-subtle, #ddd);
+  border-radius: 10px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.18);
+}
+
+#color-picker-popup.is-open {
+  display: flex;
+}
+
+/* Saturation / brightness gradient canvas */
+.cp-gradient {
+  position: relative;
+  width: 100%;
+  height: 130px;
+  border-radius: 6px;
+  cursor: crosshair;
+  overflow: hidden;
+  flex-shrink: 0;
+  /* base hue set via JS on backgroundColor */
+}
+
+/* White → transparent overlay (creates the saturation axis) */
+.cp-gradient::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to right, #fff, transparent);
+  border-radius: 6px;
+}
+
+/* Transparent → black overlay (creates the brightness axis) */
+.cp-gradient::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, transparent, #000);
+  border-radius: 6px;
+}
+
+/* Crosshair cursor inside the gradient */
+.cp-cursor {
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Controls row: eyedropper + preview circle + hue slider */
+.cp-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cp-eyedropper {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  color: var(--color-text-secondary, #808080);
+  border-radius: 4px;
+}
+
+.cp-eyedropper:hover {
+  background: var(--color-bg-secondary, #f0f0f0);
+  color: var(--color-text-primary, #1a1a1a);
+}
+
+.cp-preview {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+}
+
+/* Rainbow hue slider */
+.cp-hue-track {
+  flex: 1;
+  position: relative;
+  height: 12px;
+  border-radius: 6px;
+  background: linear-gradient(to right,
+    hsl(0,100%,50%), hsl(30,100%,50%), hsl(60,100%,50%),
+    hsl(90,100%,50%), hsl(120,100%,50%), hsl(150,100%,50%),
+    hsl(180,100%,50%), hsl(210,100%,50%), hsl(240,100%,50%),
+    hsl(270,100%,50%), hsl(300,100%,50%), hsl(330,100%,50%),
+    hsl(360,100%,50%));
+  cursor: pointer;
+}
+
+.cp-hue-thumb {
+  position: absolute;
+  top: 50%;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  border: 1px solid rgba(0, 0, 0, 0.18);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+/* Hex input + mode badge row */
+.cp-hex-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.cp-hex-input {
+  flex: 1;
+  min-width: 0;
+  height: 28px;
+  padding: 0 6px;
+  font-family: monospace;
+  font-size: 12px;
+  text-transform: uppercase;
+  text-align: center;
+  letter-spacing: 0.04em;
+  border: 1px solid var(--color-line-subtle, #ddd);
+  border-radius: 6px;
+  outline: none;
+}
+
+.cp-hex-input:focus {
+  border-color: var(--color-primary, #4262ff);
+}
+
+.cp-mode-badge {
+  flex-shrink: 0;
+  height: 28px;
+  padding: 0 7px;
+  display: flex;
+  align-items: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-secondary, #808080);
+  background: var(--color-bg-secondary, #f5f5f5);
+  border: 1px solid var(--color-line-subtle, #ddd);
+  border-radius: 6px;
+  user-select: none;
+}
+
+.cp-confirm-btn {
+  width: 100%;
+}

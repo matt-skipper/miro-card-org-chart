@@ -1,0 +1,15 @@
+{
+  "name": "miro-card-org-chart",
+  "version": "0.1.0",
+  "license": "MIT",
+  "scripts": {
+    "dev": "vite",
+    "start": "node server.js",
+    "build": "vite build",
+    "serve": "vite preview"
+  },
+  "dependencies": {
+    "mirotone": "5",
+    "vite": "^8.0.12"
+  }
+}
