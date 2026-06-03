@@ -17,7 +17,7 @@
     <!-- Loading overlay: covers the modal while cards are being created -->
     <div id="view-loading">
       <div class="loading-spinner"></div>
-      <p class="body-medium">Creating org chart, please wait&hellip;</p>
+      <p class="p-medium">Creating org chart, please wait&hellip;</p>
     </div>
 
     <div id="root">
@@ -25,7 +25,7 @@
       <!-- ── Page 1: Choose layout ───────────────────────────────────────────── -->
       <div id="view-layout">
         <p class="fields-step-label">Step 1/4</p>
-        <h1 class="upload-title layout-title">Org Chart - Choose layout</h1>
+        <h1 class="h2 layout-title">Org Chart - Choose layout</h1>
 
         <div class="layout-options" role="radiogroup" aria-label="Choose layout">
           <button type="button" class="layout-option" data-layout="vertical"
@@ -96,7 +96,7 @@
       <!-- ── Page 2: Upload CSV ──────────────────────────────────────────────── -->
       <div id="view-upload">
         <p class="fields-step-label">Step 2/4</p>
-        <h1 class="upload-title">Upload CSV file</h1>
+        <h1 class="h2">Upload CSV file</h1>
 
         <div class="upload-prereqs">
           <p><strong>Before uploading your table, make sure:</strong></p>
@@ -106,7 +106,7 @@
           </ul>
         </div>
 
-        <a href="/Miro_OrgChart_Template.csv" download="Miro_OrgChart_Template.csv" class="download-template-link">
+        <a href="/Miro_OrgChart_Template.csv" download="Miro_OrgChart_Template.csv" class="link link-primary download-template-link">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
@@ -123,7 +123,7 @@
           <!-- Empty state -->
           <div id="drop-state-empty" class="drop-state">
             <p class="drop-hint">
-              Drop a .csv file or <button type="button" id="browse-btn" class="browse-link">browse</button>
+              Drop a .csv file or <button type="button" id="browse-btn" class="button button-tertiary">browse</button>
             </p>
           </div>
 
@@ -166,7 +166,7 @@
       <!-- ── Page 3: Column mapping ──────────────────────────────────────────── -->
       <div id="view-mapping">
         <p class="fields-step-label">Step 3/4</p>
-        <h1 class="upload-title">Map columns</h1>
+        <h1 class="h2">Map columns</h1>
         <p class="mapping-description">
           Select which CSV columns identify each employee and their supervisor to form the org chart hierarchy
         </p>
@@ -203,7 +203,7 @@
       <!-- ── Page 4: Additional fields ──────────────────────────────────────── -->
       <div id="view-fields">
         <p class="fields-step-label">Step 4/4</p>
-        <h1 class="upload-title">Additional information</h1>
+        <h1 class="h2">Additional information</h1>
         <p class="mapping-description">
           Choose the columns in your CSV that will be imported to the Org Chart (limit: 20 columns)
         </p>

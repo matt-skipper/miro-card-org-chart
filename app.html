@@ -23,14 +23,14 @@
             <button type="button" id="open-create-modal-btn" class="button button-primary form-primary-action">
               Create new org chart
             </button>
-            <p class="body-small subtext" style="margin-top: var(--space-small);">
+            <p class="p-small" style="margin-top: var(--space-small);">
               Upload a CSV file to build your org chart on this board.
             </p>
           </div>
 
           <!-- ── Conditional formatting ───────────────────────────────────────── -->
           <section class="form-section collapsible-section">
-            <h2 class="title title-level-2">
+            <h2 class="h2">
               <button type="button" class="section-toggle" aria-expanded="false">
                 Conditional formatting
                 <svg class="chevron-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
@@ -41,12 +41,12 @@
               </button>
             </h2>
             <div class="section-body">
-              <p class="body-small subtext">Select cards on the board, then load them to format by field values.</p>
+              <p class="p-small">Select cards on the board, then load them to format by field values.</p>
               <button type="button" id="load-selected-cards" class="button button-secondary form-load-button">Load selected cards</button>
 
               <!-- Shown after "Load selected cards" populates format-field from card field names -->
               <div id="conditional-format-section" style="display: none; margin-top: var(--space-medium);">
-                <h3 class="title title-level-3">Apply style when</h3>
+                <h3 class="h3">Apply style when</h3>
 
                 <div class="form-group">
                   <label for="format-field">Field</label>
@@ -100,7 +100,7 @@
 
           <!-- ── Single card details ─────────────────────────────────────────── -->
           <section class="form-section collapsible-section">
-            <h2 class="title title-level-2">
+            <h2 class="h2">
               <button type="button" class="section-toggle" aria-expanded="false">
                 Single card details
                 <svg class="chevron-icon" width="16" height="16" viewBox="0 0 24 24" fill="none"
@@ -111,13 +111,13 @@
               </button>
             </h2>
             <div class="section-body">
-              <p class="body-small subtext">Select a single card on the board to view or edit its fields.</p>
+              <p class="p-small">Select a single card on the board to view or edit its fields.</p>
               <button type="button" id="load-single-card" class="button button-secondary form-load-button">Load selected card</button>
 
               <!-- Shown after a single card is loaded -->
               <div id="single-card-section" style="display: none; margin-top: var(--space-medium);">
                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--space-small);">
-                  <h3 class="title title-level-3" id="single-card-name"></h3>
+                  <h3 class="h3" id="single-card-name"></h3>
                   <button type="button" id="edit-card-fields-btn" class="button button-secondary">Edit fields</button>
                 </div>
                 <div id="single-card-fields"></div>

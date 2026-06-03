@@ -1337,7 +1337,7 @@ function setupSingleCardDetails() {
     const fields = currentCard.fields || [];
     if (!fields.length) {
       const emptyState = document.createElement('p');
-      emptyState.className = 'body-small subtext';
+      emptyState.className = 'p-small';
       emptyState.textContent = 'This card has no fields.';
       fieldsEl.replaceChildren(emptyState);
       return;
@@ -1347,7 +1347,7 @@ function setupSingleCardDetails() {
       row.className = 'form-group';
 
       const label = document.createElement('label');
-      label.className = 'body-small';
+      label.className = 'p-small';
       label.textContent = f.tooltip || `Field ${i + 1}`;
 
       const input = document.createElement('input');

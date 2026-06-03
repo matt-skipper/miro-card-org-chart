@@ -44,11 +44,7 @@ img {
 .form-section {
   margin-top: var(--space-medium);
   padding-top: var(--space-medium);
-  border-top: 1px solid var(--color-line-subtle, #e0e0e0);
-}
-
-.subtext {
-  margin-top: var(--space-xsmall);
+  border-top: 1px solid var(--indigo200);
 }
 
 .form-load-button {
@@ -68,7 +64,7 @@ img {
   width: 40px;
   height: 40px;
   border-radius: 999px;
-  border: 1px solid var(--color-line-subtle, #9e9e9e);
+  border: 1px solid var(--indigo200);
   cursor: pointer;
   padding: 0;
   outline: none;
@@ -80,7 +76,7 @@ img {
 }
 
 .color-swatch-btn[aria-checked='true'] {
-  box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--color-primary, #4262ff);
+  box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--blue700);
 }
 
 /* Custom color swatch — shows hex tooltip on hover */
@@ -126,7 +122,7 @@ img {
   background: none !important;
   border: none !important;
   box-shadow: none !important;
-  color: var(--color-text-secondary, #808080);
+  color: var(--indigo500);
   font-size: 28px;
   font-weight: 300;
   line-height: 1;
@@ -137,7 +133,7 @@ img {
 }
 
 .color-swatch-add:hover {
-  color: var(--color-text-primary, #1a1a1a);
+  color: var(--indigo700);
   transform: none;
 }
 
@@ -198,8 +194,8 @@ img {
 .loading-spinner {
   width: 36px;
   height: 36px;
-  border: 3px solid var(--color-line-subtle, #e0e0e0);
-  border-top-color: var(--color-primary, #4262ff);
+  border: 3px solid var(--indigo200);
+  border-top-color: var(--blue700);
   border-radius: 50%;
   animation: spin 0.7s linear infinite;
 }
@@ -216,12 +212,8 @@ img {
   flex-direction: column;
 }
 
-.upload-title {
-  font-size: 24px;
-  font-weight: 400;
-  line-height: 1.2;
+.upload-modal .h2 {
   margin: 0 0 18px;
-  color: var(--color-text-primary, #1a1a1a);
 }
 
 .upload-prereqs {
@@ -232,7 +224,7 @@ img {
   font-size: 14px;
   font-weight: 700;
   margin: 0 0 6px;
-  color: var(--color-text-primary, #1a1a1a);
+  color: var(--indigo700);
 }
 
 .upload-prereqs ul {
@@ -240,7 +232,7 @@ img {
   padding-left: 18px;
   font-size: 14px;
   line-height: 1.5;
-  color: var(--color-text-primary, #1a1a1a);
+  color: var(--indigo700);
 }
 
 .upload-prereqs li + li {
@@ -254,14 +246,6 @@ img {
   align-items: center;
   gap: 6px;
   margin-bottom: 14px;
-  color: var(--color-primary, #4262ff);
-  font-size: 14px;
-  font-weight: 600;
-  text-decoration: none;
-}
-
-.download-template-link:hover {
-  text-decoration: underline;
 }
 
 /* ── Drop zone ────────────────────────────────────────────────────────────── */
@@ -283,19 +267,19 @@ img {
 }
 
 .drop-zone--active {
-  border-color: var(--color-primary, #4262ff);
-  background: #eef0ff;
+  border-color: var(--blue700);
+  background: var(--blue100);
 }
 
 .drop-zone--error {
-  border-color: #d93025;
+  border-color: var(--red600);
 }
 
 .drop-error-msg {
   display: none;
   margin: 0px 0 0;
   font-size: 12px;
-  color: #d93025;
+  color: var(--red600);
 }
 
 .drop-state {
@@ -309,36 +293,31 @@ img {
 .drop-hint {
   margin: 0;
   font-size: 14px;
-  color: var(--color-text-primary, #333);
+  color: var(--indigo700);
 }
 
-.browse-link {
-  background: none;
-  border: none;
+/* Inline tertiary button inside drop hint text */
+.drop-hint .button-tertiary {
+  display: inline;
+  vertical-align: baseline;
   padding: 0;
-  font-size: 14px;
-  font-weight: 400;
-  color: var(--color-primary, #4262ff);
-  cursor: pointer;
+  min-height: unset;
+  font-size: inherit;
   line-height: inherit;
-}
-
-.browse-link:hover {
-  text-decoration: underline;
 }
 
 /* Filled state: filename + replace hint */
 .drop-filename {
   margin: 0;
   font-size: 14px;
-  color: var(--color-text-primary, #333);
+  color: var(--indigo700);
   word-break: break-all;
 }
 
 .drop-replace-hint {
   margin: 0;
   font-size: 12px;
-  color: var(--color-text-secondary, #808080);
+  color: var(--indigo500);
 }
 
 /* ── Tooltip ──────────────────────────────────────────────────────────────── */
@@ -357,7 +336,7 @@ img {
   margin-left: 5px;
   margin-top: 5px;
   transform: translateY(-8px); /* compensate for Mirotone checkbox label's internal spacing */
-  color: var(--color-text-secondary, #a0a0a0);
+  color: var(--indigo500);
   cursor: default;
 }
 
@@ -414,7 +393,7 @@ img {
 }
 
 .section-toggle:focus-visible {
-  outline: 2px solid var(--color-primary, #4262ff);
+  outline: 2px solid var(--blue700);
   outline-offset: 2px;
   border-radius: 2px;
 }
@@ -422,7 +401,7 @@ img {
 .chevron-icon {
   flex-shrink: 0;
   margin-left: var(--space-small, 8px);
-  color: var(--color-text-secondary, #808080);
+  color: var(--indigo500);
   transition: transform 220ms ease;
 }
 
@@ -500,12 +479,12 @@ img {
 }
 
 .layout-option[aria-checked='true'] {
-  border-color: var(--color-primary, #4262ff);
-  box-shadow: inset 0 0 0 1px var(--color-primary, #4262ff);
+  border-color: var(--blue700);
+  box-shadow: inset 0 0 0 1px var(--blue700);
 }
 
 .layout-option:focus-visible {
-  outline: 2px solid var(--color-primary, #4262ff);
+  outline: 2px solid var(--blue700);
   outline-offset: 2px;
 }
 
@@ -528,8 +507,8 @@ img {
 }
 
 .layout-option[aria-checked='true'] .layout-option-check {
-  border-color: var(--color-primary, #4262ff);
-  background: var(--color-primary, #4262ff);
+  border-color: var(--blue700);
+  background: var(--blue700);
 }
 
 .layout-option[aria-checked='true'] .layout-option-check svg {
@@ -551,21 +530,21 @@ img {
 
 .layout-option-label {
   font-size: 14px;
-  color: var(--color-text-primary, #1a1a1a);
+  color: var(--indigo700);
   text-align: center;
 }
 
 .next-step-hint {
   margin: 8px 0 0;
   font-size: 12px;
-  color: var(--color-text-secondary, #808080);
+  color: var(--indigo500);
 }
 
 /* ── Column mapping view (page 2 of upload flow) ─────────────────────────── */
 
 .mapping-description {
   font-size: 14px;
-  color: var(--color-text-primary, #333);
+  color: var(--indigo700);
   line-height: 1.5;
   margin: 0 0 22px;
 }
@@ -586,7 +565,7 @@ img {
 
 .mapping-label {
   font-size: 14px;
-  color: var(--color-text-primary, #333);
+  color: var(--indigo700);
 }
 
 .mapping-actions {
@@ -598,14 +577,14 @@ img {
 
 .fields-step-label {
   font-size: 13px;
-  color: var(--color-text-secondary, #808080);
+  color: var(--indigo500);
   margin: 0 0 4px;
 }
 
 .fields-select-all-row {
   margin-top: 4px;
   padding-bottom: 10px;
-  border-bottom: 1px solid var(--color-line-subtle, #e0e0e0);
+  border-bottom: 1px solid var(--indigo200);
 }
 
 .fields-list {
@@ -634,7 +613,7 @@ img {
   padding: 10px;
   width: 224px;
   background: #fff;
-  border: 1px solid var(--color-line-subtle, #ddd);
+  border: 1px solid var(--indigo200);
   border-radius: 10px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.18);
 }
@@ -704,13 +683,13 @@ img {
   background: none;
   padding: 0;
   cursor: pointer;
-  color: var(--color-text-secondary, #808080);
+  color: var(--indigo500);
   border-radius: 4px;
 }
 
 .cp-eyedropper:hover {
-  background: var(--color-bg-secondary, #f0f0f0);
-  color: var(--color-text-primary, #1a1a1a);
+  background: var(--indigo50);
+  color: var(--indigo700);
 }
 
 .cp-preview {
@@ -766,13 +745,13 @@ img {
   text-transform: uppercase;
   text-align: center;
   letter-spacing: 0.04em;
-  border: 1px solid var(--color-line-subtle, #ddd);
+  border: 1px solid var(--indigo200);
   border-radius: 6px;
   outline: none;
 }
 
 .cp-hex-input:focus {
-  border-color: var(--color-primary, #4262ff);
+  border-color: var(--blue700);
 }
 
 .cp-mode-badge {
@@ -783,9 +762,9 @@ img {
   align-items: center;
   font-size: 11px;
   font-weight: 600;
-  color: var(--color-text-secondary, #808080);
-  background: var(--color-bg-secondary, #f5f5f5);
-  border: 1px solid var(--color-line-subtle, #ddd);
+  color: var(--indigo500);
+  background: var(--indigo50);
+  border: 1px solid var(--indigo200);
   border-radius: 6px;
   user-select: none;
 }
