@@ -6,6 +6,7 @@
     "Create new org chart" opens create-chart.html as a modal (CSV wizard).
     Conditional formatting and single-card details are collapsible sections
     (collapsed by default; click the section heading to expand).
+    A feedback footer with a feedback button is pinned to the bottom of the panel.
   -->
   <head>
     <meta charset="utf-8" />
@@ -13,7 +14,7 @@
     <script src="https://miro.com/app/static/sdk/v2/miro.js"></script>
     <title>Miro Card Org Chart</title>
   </head>
-  <body>
+  <body class="panel-view">
     <div id="root">
       <div class="grid wrapper form-view">
         <form class="cs1 ce12 form-view-main-content">
@@ -127,6 +128,19 @@
           </section>
 
         </form>
+
+        <footer class="cs1 ce12 grid panel-footer">
+          <div class="cs11 ce12">
+            <button
+              type="button"
+              id="panel-feedback-btn"
+              class="panel-feedback-link"
+              aria-label="Send feedback"
+            >
+              <span class="m2 icon icon-comment-feedback" aria-hidden="true"></span>
+            </button>
+          </div>
+        </footer>
       </div>
     </div>
 

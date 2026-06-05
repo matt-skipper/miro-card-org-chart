@@ -651,6 +651,41 @@ function setupCollapsibleSections() {
 // ─── Create Chart Button (panel) ─────────────────────────────────────────────
 // Opens create-chart.html in a focused modal (app.html only).
 
+const FEEDBACK_EMAIL = 'cardorgchart-app@miro.com';
+const FEEDBACK_MAILTO =
+  `mailto:${FEEDBACK_EMAIL}?subject=${encodeURIComponent('Miro Card Org Chart Feedback')}`;
+
+/** Open the default mail client without navigating the panel iframe. */
+async function openFeedbackEmail() {
+  try {
+    const link = document.createElement('a');
+    link.href = FEEDBACK_MAILTO;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    return;
+  } catch (_) { /* fall through to clipboard fallback */ }
+
+  try {
+    await navigator.clipboard.writeText(FEEDBACK_EMAIL);
+    await miro.board.notifications.showInfo(`Email address copied: ${FEEDBACK_EMAIL}`);
+  } catch (_) {
+    await miro.board.notifications.showInfo(`Send feedback to ${FEEDBACK_EMAIL}`);
+  }
+}
+
+function setupFeedbackButton() {
+  const btn = document.getElementById('panel-feedback-btn');
+  if (!btn) return;
+  btn.addEventListener('click', (e) => {
+    e.preventDefault();
+    openFeedbackEmail();
+  });
+}
+
 function setupCreateChartButton() {
   const btn = document.getElementById('open-create-modal-btn');
   if (!btn) return;
@@ -1442,6 +1477,7 @@ function init() {
     document.addEventListener('DOMContentLoaded', () => {
       setupCollapsibleSections();
       setupCreateChartButton();
+      setupFeedbackButton();
       setupModalInitialFocus();
       setupFileUpload();
       setupConditionalFormatting();
@@ -1450,6 +1486,7 @@ function init() {
   } else {
     setupCollapsibleSections();
     setupCreateChartButton();
+    setupFeedbackButton();
     setupModalInitialFocus();
     setupFileUpload();
     setupConditionalFormatting();
