@@ -32,7 +32,7 @@ jobs:
         npm run build --if-present
 
     - name: Generate deployment package
-      run: zip -r org-chart-prod-deploy.zip dist package.json package-lock.json server.js Procfile .platform -x '*.git*'
+      run: zip -r org-chart-prod-deploy.zip dist package.json package-lock.json server.js Procfile -x '*.git*'
 
     - name: Get current date
       id: date
