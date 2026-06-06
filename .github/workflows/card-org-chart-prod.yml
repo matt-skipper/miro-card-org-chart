@@ -1,0 +1,51 @@
+name: Miro Card Org Chart - Deploy to Amazon Elastic Beanstalk
+run-name: Deploy Org Chart `${{ github.ref_name }}` || `${{ github.ref }}` to Amazon EB by ${{ github.actor }}
+
+on:
+  pull_request:
+    branches: [main]
+    types: [closed]
+
+env:
+  NODE_VERSION: 24.x
+
+jobs:
+  build_and_deploy_frontend:
+    if: github.event.pull_request.merged == true && github.event.pull_request.user.login != 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    steps:
+
+    - name: Checkout source code
+      uses: actions/checkout@v2
+
+    - name: Set up Node.js
+      id: set_node
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ env.NODE_VERSION }}
+        cache: 'npm'
+
+    - name: Install and Build
+      if: steps.set_node.outcome == 'success'
+      run: |
+        npm install
+        npm run build --if-present
+
+    - name: Generate deployment package
+      run: zip -r org-chart-prod-deploy.zip dist package.json package-lock.json server.js Procfile .platform -x '*.git*'
+
+    - name: Get current date
+      id: date
+      run: echo "DATE=$(date +'%Y%m%d%T')" >> "$GITHUB_OUTPUT"
+
+    - name: Deploy to Production
+      uses: einaregilsson/beanstalk-deploy@v22
+      with:
+        aws_access_key: ${{ secrets.AWS_ACCESS_KEY }}
+        aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        application_name: miro-cards-org-chart
+        environment_name: Miro-cards-org-chart-env
+        existing_bucket_name: ${{ secrets.AWS_DEPLOYMENTS_BUCKET }}
+        version_label: "${{ steps.date.outputs.DATE }}_ORGCHART_PROD"
+        region: ${{ secrets.AWS_REGION }}
+        deployment_package: "org-chart-prod-deploy.zip"
