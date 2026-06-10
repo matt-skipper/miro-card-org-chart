@@ -7,34 +7,24 @@
   box-sizing: border-box;
 }
 
+/* App-level tokens (layered on Mirotone) */
+:root {
+  --app-blue: var(--blue700, #4262ff);
+  --app-blue-bg: #eef1ff;
+  --app-ink: #15151e;
+  --app-mut: #69697f;
+  --app-bd: var(--indigo200, #e4e4ee);
+  --app-bg: #f7f7fb;
+  --app-grn: #11845b;
+  --app-grn-bg: #e8f6f0;
+  --app-amber: #b45309;
+  --app-amber-bg: #fef3e2;
+  --app-red: var(--red600, #d30c0c);
+  --app-red-bg: #fdecec;
+}
+
 body {
-  display: flex;
-}
-
-/* Panel content area: full width, scrollable, uses Miro spacing tokens */
-#root {
-  width: 100%;
-  overflow: auto;
-  padding: var(--space-medium);
-}
-
-body.panel-view {
-  min-height: 100vh;
-}
-
-body.panel-view #root {
-  height: 100vh;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
-/* Pull inputs and selects away from both edges so their focus
-   ring isn't clipped by #root's overflow:auto boundary */
-#root .input,
-#root .select {
-  margin-left: 3px;
-  width: calc(100% - 6px);
+  margin: 0;
 }
 
 img {
@@ -42,76 +32,535 @@ img {
   height: auto;
 }
 
-/* Mirotone form template-inspired layout for panel flows */
-.form-view {
-  grid-auto-rows: 1fr auto;
-  row-gap: var(--space-medium);
+/* ── Panel layout (app.html) ─────────────────────────────────────────────── */
+
+body.panel-view {
+  min-height: 100vh;
 }
 
-body.panel-view .form-view {
+body.panel-view #root {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.panel-page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--app-bd);
+  flex-shrink: 0;
+}
+
+.panel-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--app-ink);
+}
+
+.panel-subtitle {
+  margin: 1px 0 0;
+  font-size: 12px;
+  color: var(--app-mut);
+}
+
+.panel-app-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: var(--app-blue);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.panel-back-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid var(--app-bd);
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--app-mut);
+  cursor: pointer;
+  flex-shrink: 0;
+  padding: 0;
+}
+
+.panel-back-btn:hover {
+  background: var(--app-bg);
+}
+
+.panel-back-btn:focus-visible {
+  outline: 2px solid var(--app-blue);
+  outline-offset: 2px;
+}
+
+.panel-scroll {
   flex: 1;
   min-height: 0;
-}
-
-.form-view-main-content {
-  align-self: flex-start;
-}
-
-body.panel-view .form-view-main-content {
-  align-self: stretch;
-  min-height: 0;
   overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
 .panel-footer {
-  border-top: 1px solid var(--indigo200);
-  padding-top: var(--space-small);
-  align-self: end;
+  border-top: 1px solid var(--app-bd);
+  padding: 10px 16px;
+  flex-shrink: 0;
+  display: flex;
+  justify-content: center;
 }
 
 .panel-feedback-link {
   display: inline-flex;
-  float: right;
-  margin-right: 5px;
-  padding: 0;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
   border: none;
   background: none;
-  color: inherit;
-  text-decoration: none;
-  cursor: pointer;
+  color: var(--app-mut);
   font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+  border-radius: 6px;
+}
+
+.panel-feedback-link:hover {
+  color: var(--app-ink);
+  background: var(--app-bg);
 }
 
 .panel-feedback-link:focus-visible {
-  outline: 2px solid var(--blue700);
+  outline: 2px solid var(--app-blue);
   outline-offset: 2px;
-  border-radius: 2px;
 }
 
-.form-section {
-  margin-top: var(--space-medium);
-  padding-top: var(--space-medium);
-  border-top: 1px solid var(--indigo200);
+.panel-section-label {
+  margin: 4px 0 0;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--app-mut);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
-.form-load-button {
-  margin-top: var(--space-small);
+/* ── Panel home: hero + tool cards ───────────────────────────────────────── */
+
+.hero-card {
+  border: 1px solid var(--app-bd);
+  border-radius: 14px;
+  background: linear-gradient(180deg, #f5f7ff 0%, #fff 80%);
+  text-align: center;
+  padding: 20px 16px 16px;
 }
+
+.hero-title {
+  margin: 8px 0 4px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--app-ink);
+}
+
+.hero-text {
+  margin: 0 0 14px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--app-mut);
+}
+
+.hero-cta {
+  width: 100%;
+}
+
+.hero-template-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  font-size: 12.5px;
+}
+
+.tool-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 13px 14px;
+  border: 1px solid var(--app-bd);
+  border-radius: 14px;
+  background: #fff;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.tool-card:hover {
+  border-color: var(--app-blue);
+  box-shadow: 0 1px 4px rgba(9, 9, 40, 0.08);
+}
+
+.tool-card:focus-visible {
+  outline: 2px solid var(--app-blue);
+  outline-offset: 2px;
+}
+
+.tool-card-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.tool-card-icon-amber {
+  background: var(--app-amber-bg);
+  color: var(--app-amber);
+}
+
+.tool-card-icon-blue {
+  background: var(--app-blue-bg);
+  color: var(--app-blue);
+}
+
+.tool-card-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.tool-card-title {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--app-ink);
+}
+
+.tool-card-desc {
+  font-size: 12px;
+  color: var(--app-mut);
+}
+
+.tool-card-chevron {
+  color: #9a9ab0;
+  flex-shrink: 0;
+}
+
+/* Live selection pill on home */
+.selection-pill {
+  margin: 2px auto 0;
+  display: none;
+  align-items: center;
+  gap: 6px;
+  background: var(--app-grn-bg);
+  color: var(--app-grn);
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 999px;
+  padding: 4px 12px;
+}
+
+.selection-pill.is-visible {
+  display: inline-flex;
+}
+
+.selection-pill::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--app-grn);
+}
+
+/* ── Empty states ────────────────────────────────────────────────────────── */
+
+.panel-empty-state {
+  border: 1.5px dashed var(--app-bd);
+  border-radius: 14px;
+  padding: 26px 18px;
+  text-align: center;
+}
+
+.panel-empty-title {
+  margin: 0 0 4px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--app-ink);
+}
+
+.panel-empty-text {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--app-mut);
+}
+
+/* ── Conditional formatting view ─────────────────────────────────────────── */
+
+.selection-banner {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  background: var(--app-grn-bg);
+  border-radius: 10px;
+  padding: 9px 13px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--app-grn);
+}
+
+.selection-banner.is-visible {
+  display: flex;
+}
+
+.selection-banner::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--app-grn);
+  flex-shrink: 0;
+}
+
+.rule-card {
+  border: 1px solid var(--app-bd);
+  border-radius: 14px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: #fff;
+}
+
+.rule-row {
+  display: flex;
+  gap: 8px;
+}
+
+.rule-row .select {
+  flex: 1;
+  min-width: 0;
+}
+
+.rule-divider {
+  border-top: 1px dashed var(--app-bd);
+  margin: 2px 0;
+}
+
+.rule-fill-toggle {
+  margin-top: 2px;
+}
+
+/* Preview mini-card */
+.preview-card {
+  border: 1px solid var(--app-bd);
+  border-left: 5px solid var(--app-blue);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(9, 9, 40, 0.08);
+}
+
+.preview-card-title {
+  margin: 0 0 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--app-ink);
+}
+
+.preview-card-field {
+  margin: 0;
+  font-size: 12px;
+  color: var(--app-mut);
+}
+
+/* Match meter */
+.match-meter-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.match-meter-track {
+  flex: 1;
+  height: 6px;
+  border-radius: 99px;
+  background: var(--app-bg);
+  overflow: hidden;
+}
+
+.match-meter-bar {
+  width: 0%;
+  height: 100%;
+  background: var(--app-grn);
+  border-radius: 99px;
+  transition: width 180ms ease;
+}
+
+.match-meter-count {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--app-mut);
+  white-space: nowrap;
+}
+
+.form-primary-action {
+  width: 100%;
+  text-align: center;
+}
+
+/* ── Inline feedback messages ────────────────────────────────────────────── */
+
+.inline-msg-slot {
+  min-height: 0;
+}
+
+.inline-msg {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  font-size: 12.5px;
+  font-weight: 500;
+  line-height: 1.45;
+}
+
+.inline-msg-success {
+  background: var(--app-grn-bg);
+  color: var(--app-grn);
+}
+
+.inline-msg-error {
+  background: var(--app-red-bg);
+  color: var(--app-red);
+}
+
+/* ── Card details view ───────────────────────────────────────────────────── */
+
+.card-identity {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--app-bd);
+  border-radius: 14px;
+  padding: 14px;
+  background: #fff;
+  margin-bottom: 12px;
+}
+
+.card-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--app-blue-bg);
+  color: var(--app-blue);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.card-identity-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.card-identity-text .h3 {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.card-identity-meta {
+  font-size: 12px;
+  color: var(--app-mut);
+}
+
+/* View mode: definition list rows */
+.field-view-list {
+  border: 1px solid var(--app-bd);
+  border-radius: 14px;
+  padding: 2px 14px;
+  background: #fff;
+}
+
+.field-view-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--app-bg);
+  font-size: 13px;
+}
+
+.field-view-row:last-child {
+  border-bottom: none;
+}
+
+.field-view-label {
+  color: var(--app-mut);
+  flex-shrink: 0;
+  max-width: 45%;
+  overflow-wrap: anywhere;
+}
+
+.field-view-value {
+  font-weight: 500;
+  color: var(--app-ink);
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+/* Edit mode field rows reuse Mirotone .form-group/.input */
+.field-edit-row {
+  margin-bottom: 10px;
+}
+
+.field-edit-row label {
+  display: block;
+  font-size: 12px;
+  color: var(--app-mut);
+  margin-bottom: 4px;
+}
+
+/* ── Color swatches (shared with previous version) ───────────────────────── */
 
 .color-swatch-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: var(--space-small);
-  margin-top: var(--space-xsmall);
-  margin-left: 4px;
-  max-width: 220px;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 2px;
 }
 
 .color-swatch-btn {
-  width: 40px;
-  height: 40px;
+  width: 30px;
+  height: 30px;
   border-radius: 999px;
-  border: 1px solid var(--indigo200);
+  border: 1px solid var(--app-bd);
   cursor: pointer;
   padding: 0;
   outline: none;
@@ -122,11 +571,16 @@ body.panel-view .form-view-main-content {
   transform: translateY(-1px);
 }
 
-.color-swatch-btn[aria-checked='true'] {
-  box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--blue700);
+.color-swatch-btn:focus-visible {
+  outline: 2px solid var(--app-blue);
+  outline-offset: 2px;
 }
 
-/* Custom color swatch — shows hex tooltip on hover */
+.color-swatch-btn[aria-checked='true'] {
+  box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--app-blue);
+}
+
+/* Custom color swatch — shows hex tooltip on hover/focus */
 .color-swatch-custom {
   position: relative;
 }
@@ -160,17 +614,18 @@ body.panel-view .form-view-main-content {
   border-bottom-color: #1a1a1a;
 }
 
-.color-swatch-custom:hover .swatch-hex-tooltip {
+.color-swatch-custom:hover .swatch-hex-tooltip,
+.color-swatch-custom:focus-visible .swatch-hex-tooltip {
   opacity: 1;
 }
 
 /* "+" button at the end of the swatch grid */
 .color-swatch-add {
   background: none !important;
-  border: none !important;
+  border: 1.5px dashed #b8b8cc !important;
   box-shadow: none !important;
-  color: var(--indigo500);
-  font-size: 28px;
+  color: var(--app-mut);
+  font-size: 18px;
   font-weight: 300;
   line-height: 1;
   display: flex;
@@ -180,7 +635,8 @@ body.panel-view .form-view-main-content {
 }
 
 .color-swatch-add:hover {
-  color: var(--indigo700);
+  color: var(--app-ink);
+  border-color: var(--app-mut) !important;
   transform: none;
 }
 
@@ -202,7 +658,6 @@ body.panel-view .form-view-main-content {
   z-index: 200;
 }
 
-/* Arrow pointing up */
 .swatch-add-tooltip::after {
   content: '';
   position: absolute;
@@ -213,295 +668,188 @@ body.panel-view .form-view-main-content {
   border-bottom-color: #1a1a1a;
 }
 
-.color-swatch-add:hover .swatch-add-tooltip {
+.color-swatch-add:hover .swatch-add-tooltip,
+.color-swatch-add:focus-visible .swatch-add-tooltip {
   opacity: 1;
 }
 
-.form-primary-action {
-  width: 100%;
-  text-align: center;
-}
-
-/* ── Loading overlay ──────────────────────────────────────────────────────── */
-/* Covers the full modal while the org chart is being created.                */
-/* Controlled via JS: display toggled between 'none' and 'flex'.              */
-
-#view-loading {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: #fff;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: var(--space-medium);
-  z-index: 100;
-}
-
-.loading-spinner {
-  width: 36px;
-  height: 36px;
-  border: 3px solid var(--indigo200);
-  border-top-color: var(--blue700);
-  border-radius: 50%;
-  animation: spin 0.7s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-/* ── Upload modal layout ──────────────────────────────────────────────────── */
+/* ── Wizard modal layout (create-chart.html) ─────────────────────────────── */
 
 .upload-modal #root {
-  padding: 22px 28px 24px;
+  height: 100vh;
   display: flex;
   flex-direction: column;
+  padding: 12px 0 0;
 }
 
-.upload-modal .h2 {
-  margin: 0 0 18px;
+.wizard-view {
+  display: none;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
 }
 
-.upload-prereqs {
-  margin-bottom: 14px;
+.wizard-view.is-active {
+  display: flex;
 }
 
-.upload-prereqs p {
-  font-size: 14px;
-  font-weight: 700;
-  margin: 0 0 6px;
-  color: var(--indigo700);
+.wizard-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 12px 24px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
 }
 
-.upload-prereqs ul {
+.wizard-title {
   margin: 0;
-  padding-left: 18px;
-  font-size: 14px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--app-ink);
+}
+
+.wizard-subtitle {
+  margin: -8px 0 0;
+  font-size: 12.5px;
   line-height: 1.5;
-  color: var(--indigo700);
+  color: var(--app-mut);
 }
 
-.upload-prereqs li + li {
-  margin-top: 4px;
+.wizard-section-label {
+  margin: 0 0 6px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--app-mut);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
-/* ── Download template link ───────────────────────────────────────────────── */
-
-.download-template-link {
-  display: inline-flex;
+.wizard-footer {
+  display: flex;
+  justify-content: space-between;
   align-items: center;
-  gap: 6px;
-  margin-bottom: 14px;
+  padding: 12px 24px;
+  border-top: 1px solid var(--app-bd);
+  flex-shrink: 0;
+  background: #fff;
 }
 
-/* ── Drop zone ────────────────────────────────────────────────────────────── */
+/* ── Stepper ─────────────────────────────────────────────────────────────── */
 
-.drop-zone {
+.wizard-steps {
+  display: flex;
+  align-items: flex-start;
+  padding: 4px 24px 8px;
+  flex-shrink: 0;
+}
+
+.wizard-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 64px;
+  flex-shrink: 0;
+}
+
+.wizard-step-dot {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 110px;
-  padding: 20px 16px;
-  margin-bottom: 4px;
-  border: 1.5px dashed #c8c8c8;
-  border-radius: 8px;
-  background: #fff;
-  text-align: center;
-  cursor: default;
-  user-select: none;
-  transition: border-color 150ms ease, background 150ms ease;
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--app-bg);
+  color: var(--app-mut);
+  border: 1.5px solid var(--app-bd);
 }
 
-.drop-zone--active {
-  border-color: var(--blue700);
-  background: var(--blue100);
+.wizard-step-label {
+  font-size: 10.5px;
+  color: var(--app-mut);
 }
 
-.drop-zone--error {
-  border-color: var(--red600);
+.wizard-step.is-active .wizard-step-dot {
+  border-color: var(--app-blue);
+  color: var(--app-blue);
+  background: var(--app-blue-bg);
 }
 
-.drop-error-msg {
-  display: none;
-  margin: 0px 0 0;
-  font-size: 12px;
-  color: var(--red600);
+.wizard-step.is-active .wizard-step-label {
+  color: var(--app-blue);
+  font-weight: 600;
 }
 
-.drop-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-}
-
-/* "Drop a .csv file or browse" */
-.drop-hint {
-  margin: 0;
-  font-size: 14px;
-  color: var(--indigo700);
-}
-
-/* Inline tertiary button inside drop hint text */
-.drop-hint .button-tertiary {
-  display: inline;
-  vertical-align: baseline;
-  padding: 0;
-  min-height: unset;
-  font-size: inherit;
-  line-height: inherit;
-}
-
-/* Filled state: filename + replace hint */
-.drop-filename {
-  margin: 0;
-  font-size: 14px;
-  color: var(--indigo700);
-  word-break: break-all;
-}
-
-.drop-replace-hint {
-  margin: 0;
-  font-size: 12px;
-  color: var(--indigo500);
-}
-
-/* ── Tooltip ──────────────────────────────────────────────────────────────── */
-
-.checkbox-with-tooltip {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.tooltip-anchor {
+.wizard-step.is-done .wizard-step-dot {
+  background: var(--app-blue);
+  border-color: var(--app-blue);
+  color: transparent;
   position: relative;
-  display: inline-flex;
-  align-items: center;
-  line-height: 0;
-  margin-left: 5px;
-  margin-top: 5px;
-  transform: translateY(-8px); /* compensate for Mirotone checkbox label's internal spacing */
-  color: var(--indigo500);
-  cursor: default;
 }
 
-.tooltip-anchor svg {
-  display: block;
-}
-
-.tooltip-text {
+/* checkmark for completed steps (pure CSS, no inline svg swap needed) */
+.wizard-step.is-done .wizard-step-dot::after {
+  content: '';
   position: absolute;
-  bottom: calc(100% + 8px);
-  right: -4px;
-  width: 220px;
-  padding: 10px 12px;
-  background: #1a1a1a;
-  color: #fff;
-  font-size: 14px;
-  font-weight: 400;
+  left: 7px;
+  top: 6px;
+  width: 8px;
+  height: 4.5px;
+  border-left: 2px solid #fff;
+  border-bottom: 2px solid #fff;
+  transform: rotate(-45deg);
+}
+
+.wizard-step-bar {
+  height: 2px;
+  flex: 1;
+  background: var(--app-bd);
+  margin-top: 11px;
+}
+
+.wizard-step-bar.is-done {
+  background: var(--app-blue);
+}
+
+/* ── Banners (info / success / warning) ──────────────────────────────────── */
+
+.wizard-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  border-radius: 10px;
+  padding: 9px 13px;
+  font-size: 12.5px;
+  font-weight: 600;
   line-height: 1.45;
-  border-radius: 8px;
-  pointer-events: none;
-  white-space: normal;
-  opacity: 0;
-  transition: opacity 120ms ease;
-  z-index: 200;
 }
 
-.tooltip-anchor:hover .tooltip-text {
-  opacity: 1;
+.wizard-banner-info {
+  background: var(--app-blue-bg);
+  color: var(--app-blue);
 }
 
-/* ── Next button ──────────────────────────────────────────────────────────── */
-
-.upload-next-btn {
-  align-self: flex-start;
-  width: auto !important;
+.wizard-banner-success {
+  background: var(--app-grn-bg);
+  color: var(--app-grn);
 }
 
-
-/* ── Collapsible sections (panel) ─────────────────────────────────────────── */
-/* Section header becomes a full-width button; chevron rotates when open.      */
-
-.section-toggle {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  width: 100%;
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-  font: inherit;
-  color: inherit;
-  text-align: left;
+.wizard-banner-warn {
+  background: var(--app-amber-bg);
+  color: var(--app-amber);
 }
 
-.section-toggle:focus-visible {
-  outline: 2px solid var(--blue700);
-  outline-offset: 2px;
-  border-radius: 2px;
-}
-
-.chevron-icon {
-  flex-shrink: 0;
-  margin-left: var(--space-small, 8px);
-  color: var(--indigo500);
-  transition: transform 220ms ease;
-}
-
-.collapsible-section.is-open .chevron-icon {
-  transform: rotate(180deg);
-}
-
-/* max-height trick: animates open/close without knowing the content height. */
-.section-body {
-  overflow: hidden;
-  max-height: 0;
-  transition: max-height 280ms ease;
-}
-
-.collapsible-section.is-open .section-body {
-  max-height: 9999px;
-}
-
-/* ── Upload / mapping view containers ────────────────────────────────────── */
-/* Each view is a flex column; only one is visible at a time.                  */
-
-#view-layout {
-  display: flex;
-  flex-direction: column;
-}
-
-#view-upload {
-  display: none; /* shown by JS when user clicks Next on the layout page */
-  flex-direction: column;
-}
-
-#view-mapping {
-  display: none; /* shown by JS when user clicks Next on the upload page */
-  flex-direction: column;
-}
-
-#view-fields {
-  display: none; /* shown by JS when user clicks Next on the mapping page */
-  flex-direction: column;
-}
-
-/* ── Choose layout view (page 1 of upload flow) ──────────────────────────── */
-
-.layout-title {
-  text-align: center;
-  margin: 8px 0 24px;
-}
+/* ── Layout choice (step 1) ──────────────────────────────────────────────── */
 
 .layout-options {
   display: flex;
   justify-content: center;
-  gap: 18px;
-  margin-bottom: 22px;
+  gap: 14px;
+  margin-top: 6px;
 }
 
 .layout-option {
@@ -509,40 +857,42 @@ body.panel-view .form-view-main-content {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
-  width: 150px;
-  padding: 18px 12px 12px;
+  gap: 6px;
+  flex: 1;
+  max-width: 180px;
+  padding: 18px 12px 14px;
   background: #fff;
-  border: 1.5px solid #e0e0e0;
-  border-radius: 10px;
+  border: 1.5px solid var(--app-bd);
+  border-radius: 12px;
   cursor: pointer;
-  transition: border-color 120ms ease, box-shadow 120ms ease;
+  transition: border-color 120ms ease, box-shadow 120ms ease, background 120ms ease;
   font: inherit;
   color: inherit;
 }
 
 .layout-option:hover {
-  border-color: #1a1a1a;
+  border-color: var(--app-blue);
 }
 
 .layout-option[aria-checked='true'] {
-  border-color: var(--blue700);
-  box-shadow: inset 0 0 0 1px var(--blue700);
+  border-color: var(--app-blue);
+  box-shadow: inset 0 0 0 1px var(--app-blue);
+  background: var(--app-blue-bg);
 }
 
 .layout-option:focus-visible {
-  outline: 2px solid var(--blue700);
+  outline: 2px solid var(--app-blue);
   outline-offset: 2px;
 }
 
 .layout-option-check {
   position: absolute;
   top: 10px;
-  left: 10px;
-  width: 14px;
-  height: 14px;
+  right: 10px;
+  width: 15px;
+  height: 15px;
   border: 1.5px solid #c8c8c8;
-  border-radius: 3px;
+  border-radius: 4px;
   background: #fff;
   display: flex;
   align-items: center;
@@ -554,8 +904,8 @@ body.panel-view .form-view-main-content {
 }
 
 .layout-option[aria-checked='true'] .layout-option-check {
-  border-color: var(--blue700);
-  background: var(--blue700);
+  border-color: var(--app-blue);
+  background: var(--app-blue);
 }
 
 .layout-option[aria-checked='true'] .layout-option-check svg {
@@ -564,7 +914,7 @@ body.panel-view .form-view-main-content {
 
 .layout-option-thumb {
   width: 100%;
-  height: 84px;
+  height: 76px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -576,67 +926,265 @@ body.panel-view .form-view-main-content {
 }
 
 .layout-option-label {
-  font-size: 14px;
-  color: var(--indigo700);
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--app-ink);
+}
+
+.layout-option-caption {
+  font-size: 11.5px;
+  color: var(--app-mut);
+}
+
+/* ── Upload step (step 2) ────────────────────────────────────────────────── */
+
+.drop-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  min-height: 130px;
+  padding: 22px 16px;
+  border: 1.5px dashed #c2c8e8;
+  border-radius: 12px;
+  background: var(--app-bg);
   text-align: center;
+  cursor: pointer;
+  user-select: none;
+  transition: border-color 150ms ease, background 150ms ease;
+  color: var(--app-blue);
 }
 
-.next-step-hint {
-  margin: 8px 0 0;
+.drop-zone:hover {
+  border-color: var(--app-blue);
+}
+
+.drop-zone:focus-visible {
+  outline: 2px solid var(--app-blue);
+  outline-offset: 2px;
+}
+
+.drop-zone--active {
+  border-color: var(--app-blue);
+  background: var(--app-blue-bg);
+}
+
+.drop-zone--error {
+  border-color: var(--app-red);
+}
+
+.drop-zone-icon {
+  margin-bottom: 6px;
+}
+
+.drop-hint {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--app-ink);
+}
+
+.drop-hint-sub {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--app-mut);
+}
+
+.drop-browse {
+  color: var(--app-blue);
+  font-weight: 600;
+}
+
+.drop-constraints {
+  margin: 6px 0 0;
+  font-size: 11.5px;
+  color: #9a9ab0;
+}
+
+.drop-error-msg {
+  display: none;
+  margin: 0;
   font-size: 12px;
-  color: var(--indigo500);
+  color: var(--app-red);
 }
 
-/* ── Column mapping view (page 2 of upload flow) ─────────────────────────── */
+/* File chip */
+.file-chip {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid var(--app-bd);
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: #fff;
+}
 
-.mapping-description {
+.file-chip-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--app-grn-bg);
+  color: var(--app-grn);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.file-chip-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.file-chip-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--app-ink);
+  overflow-wrap: anywhere;
+}
+
+.file-chip-meta {
+  font-size: 11.5px;
+  color: var(--app-mut);
+}
+
+.file-chip-remove {
+  width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  border: none;
+  background: none;
+  color: var(--app-mut);
   font-size: 14px;
-  color: var(--indigo700);
-  line-height: 1.5;
-  margin: 0 0 22px;
+  cursor: pointer;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
 }
+
+.file-chip-remove:hover {
+  background: var(--app-bg);
+  color: var(--app-ink);
+}
+
+.file-chip-remove:focus-visible {
+  outline: 2px solid var(--app-blue);
+  outline-offset: 2px;
+}
+
+/* Include header values + inline helper (replaces hover tooltip) */
+.include-headers-row .checkbox {
+  margin-bottom: 0;
+}
+
+.include-headers-help {
+  margin: 2px 0 0 28px;
+  font-size: 11.5px;
+  color: var(--app-mut);
+}
+
+/* ── Mapping step (step 3) ───────────────────────────────────────────────── */
 
 .mapping-rows {
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  margin-bottom: 28px;
+  gap: 10px;
 }
 
 .mapping-row {
   display: grid;
-  grid-template-columns: 130px 1fr;
+  grid-template-columns: 110px 1fr auto;
   align-items: center;
-  gap: 12px;
-}
-
-.mapping-label {
-  font-size: 14px;
-  color: var(--indigo700);
-}
-
-.mapping-actions {
-  display: flex;
   gap: 10px;
 }
 
-/* ── Additional fields view (page 3 of upload flow) ──────────────────────── */
-
-.fields-step-label {
+.mapping-label {
   font-size: 13px;
-  color: var(--indigo500);
-  margin: 0 0 4px;
+  font-weight: 500;
+  color: var(--app-ink);
+}
+
+.auto-badge {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--app-blue);
+  background: var(--app-blue-bg);
+  border-radius: 999px;
+  padding: 3px 9px;
+}
+
+/* Data preview table */
+.mapping-preview {
+  border: 1px solid var(--app-bd);
+  border-radius: 10px;
+  overflow: hidden;
+  font-size: 12px;
+}
+
+.mapping-preview-row {
+  display: flex;
+}
+
+.mapping-preview-row + .mapping-preview-row {
+  border-top: 1px solid var(--app-bd);
+}
+
+.mapping-preview-cell {
+  flex: 1;
+  padding: 7px 10px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mapping-preview-row.is-header {
+  background: var(--app-bg);
+  font-weight: 600;
+  color: var(--app-mut);
+}
+
+.mapping-preview-cell.is-empty {
+  color: #9a9ab0;
+}
+
+/* ── Fields step (step 4) ────────────────────────────────────────────────── */
+
+.fields-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.fields-toolbar .input {
+  flex: 1;
+  min-width: 0;
+}
+
+.fields-counter {
+  flex-shrink: 0;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--app-blue);
+  background: var(--app-blue-bg);
+  border-radius: 999px;
+  padding: 4px 10px;
+  white-space: nowrap;
 }
 
 .fields-select-all-row {
-  margin-top: 4px;
-  padding-bottom: 10px;
-  border-bottom: 1px solid var(--indigo200);
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--app-bd);
 }
 
 .fields-list {
-  margin-top: 4px;
-  max-height: 200px;
+  max-height: 190px;
   overflow-y: auto;
 }
 
@@ -644,12 +1192,97 @@ body.panel-view .form-view-main-content {
   padding: 5px 0;
 }
 
+.field-item.is-filtered {
+  display: none;
+}
+
 /* Grey out labels of disabled (over-limit) checkboxes */
 .field-item input[type='checkbox']:disabled + span {
   opacity: 0.4;
 }
 
-/* ── Gradient color picker popup ─────────────────────────────────────────────── */
+.fields-no-results {
+  margin: 8px 0;
+  font-size: 12.5px;
+  color: var(--app-mut);
+}
+
+/* Import summary */
+.import-summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--app-bg);
+  border-radius: 12px;
+  padding: 11px 14px;
+  font-size: 12.5px;
+  color: var(--app-mut);
+}
+
+.import-summary b {
+  color: var(--app-ink);
+}
+
+/* ── Progress overlay ────────────────────────────────────────────────────── */
+
+#view-loading {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: #fff;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  z-index: 100;
+  text-align: center;
+  padding: 24px;
+}
+
+.progress-title {
+  margin: 10px 0 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--app-ink);
+}
+
+.progress-phase {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--app-mut);
+}
+
+.progress-track {
+  width: 240px;
+  height: 8px;
+  border-radius: 99px;
+  background: var(--app-bg);
+  overflow: hidden;
+  margin-top: 14px;
+}
+
+.progress-bar {
+  width: 0%;
+  height: 100%;
+  background: var(--app-blue);
+  border-radius: 99px;
+  transition: width 200ms ease;
+}
+
+.progress-count {
+  margin: 4px 0 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--app-mut);
+}
+
+.progress-hint {
+  margin: 14px 0 0;
+  font-size: 11.5px;
+  color: #9a9ab0;
+}
+
+/* ── Gradient color picker popup ─────────────────────────────────────────── */
 
 #color-picker-popup {
   display: none;
@@ -660,7 +1293,7 @@ body.panel-view .form-view-main-content {
   padding: 10px;
   width: 224px;
   background: #fff;
-  border: 1px solid var(--indigo200);
+  border: 1px solid var(--app-bd);
   border-radius: 10px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.18);
 }
@@ -730,13 +1363,13 @@ body.panel-view .form-view-main-content {
   background: none;
   padding: 0;
   cursor: pointer;
-  color: var(--indigo500);
+  color: var(--app-mut);
   border-radius: 4px;
 }
 
 .cp-eyedropper:hover {
-  background: var(--indigo50);
-  color: var(--indigo700);
+  background: var(--app-bg);
+  color: var(--app-ink);
 }
 
 .cp-preview {
@@ -792,13 +1425,13 @@ body.panel-view .form-view-main-content {
   text-transform: uppercase;
   text-align: center;
   letter-spacing: 0.04em;
-  border: 1px solid var(--indigo200);
+  border: 1px solid var(--app-bd);
   border-radius: 6px;
   outline: none;
 }
 
 .cp-hex-input:focus {
-  border-color: var(--blue700);
+  border-color: var(--app-blue);
 }
 
 .cp-mode-badge {
@@ -809,9 +1442,9 @@ body.panel-view .form-view-main-content {
   align-items: center;
   font-size: 11px;
   font-weight: 600;
-  color: var(--indigo500);
-  background: var(--indigo50);
-  border: 1px solid var(--indigo200);
+  color: var(--app-mut);
+  background: var(--app-bg);
+  border: 1px solid var(--app-bd);
   border-radius: 6px;
   user-select: none;
 }

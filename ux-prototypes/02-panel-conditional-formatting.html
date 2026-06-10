@@ -1,0 +1,91 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+:root{--blue:#4262ff;--blue-bg:#eef1ff;--ink:#15151e;--mut:#69697f;--bd:#e4e4ee;--bg:#f7f7fb;--grn:#11845b;--grnbg:#e8f6f0;--amb:#b45309;--ambbg:#fef3e2}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:var(--ink);background:#fff;display:flex;flex-direction:column;height:100vh;font-size:14px;-webkit-font-smoothing:antialiased}
+.hd{display:flex;align-items:center;gap:10px;padding:14px 20px;border-bottom:1px solid var(--bd);flex-shrink:0}
+.hd .ttl{font-size:15px;font-weight:600}
+.hd .sub{font-size:12px;color:var(--mut);margin-top:1px}
+.appic{width:30px;height:30px;border-radius:8px;background:var(--blue);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.back{width:28px;height:28px;border-radius:8px;border:1px solid var(--bd);background:#fff;display:flex;align-items:center;justify-content:center;color:var(--mut);flex-shrink:0}
+.x{margin-left:auto;width:28px;height:28px;border-radius:8px;border:none;background:none;color:var(--mut);font-size:18px;display:flex;align-items:center;justify-content:center}
+.bodyc{flex:1;overflow:auto;padding:20px}
+.card{border:1px solid var(--bd);border-radius:14px;padding:16px;background:#fff}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:none;border-radius:8px;font-weight:600;font-size:14px;cursor:pointer;padding:10px 18px;font-family:inherit}
+.btn-p{background:var(--blue);color:#fff;box-shadow:0 1px 2px rgba(66,98,255,.35)}
+.btn-s{background:#fff;color:var(--ink);border:1px solid var(--bd)}
+.btn-g{background:none;color:var(--mut);font-weight:500}
+.btn-full{width:100%}
+.lbl{font-size:12px;font-weight:600;color:var(--mut);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px}
+.sel{width:100%;appearance:none;border:1px solid var(--bd);border-radius:8px;padding:9px 30px 9px 12px;font-size:14px;font-family:inherit;color:var(--ink);background:#fff}
+.selwrap{position:relative}
+.selwrap::after{content:'';position:absolute;right:13px;top:50%;width:7px;height:7px;border-right:1.8px solid var(--mut);border-bottom:1.8px solid var(--mut);transform:translateY(-70%) rotate(45deg);pointer-events:none}
+.inp{width:100%;border:1px solid var(--bd);border-radius:8px;padding:9px 12px;font-size:14px;font-family:inherit;color:var(--ink)}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;border-radius:999px;padding:4px 10px}
+.pill-g{background:var(--grnbg);color:var(--grn)}
+.pill-b{background:var(--blue-bg);color:var(--blue)}
+.dotlive{width:7px;height:7px;border-radius:50%;background:var(--grn)}
+.ft{display:flex;justify-content:space-between;align-items:center;padding:14px 20px;border-top:1px solid var(--bd);flex-shrink:0;background:#fff}
+.steps{display:flex;align-items:flex-start;padding:16px 24px 4px;flex-shrink:0}
+.step{display:flex;flex-direction:column;align-items:center;gap:5px;width:64px}
+.dot{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;background:var(--bg);color:var(--mut);border:1.5px solid var(--bd)}
+.step.done .dot{background:var(--blue);border-color:var(--blue);color:#fff}
+.step.act .dot{border-color:var(--blue);color:var(--blue);background:var(--blue-bg)}
+.step .lb{font-size:10.5px;color:var(--mut)}
+.step.act .lb{color:var(--blue);font-weight:600}
+.sbar{height:2px;flex:1;background:var(--bd);margin-top:11px}
+.sbar.done{background:var(--blue)}
+.sw{width:34px;height:20px;border-radius:999px;background:#d6d6e2;position:relative;flex-shrink:0}
+.sw.on{background:var(--blue)}
+.sw::after{content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25)}
+.sw.on::after{left:auto;right:2px}
+.row{display:flex;align-items:center;gap:10px}
+.minicard{border:1px solid var(--bd);border-left:5px solid var(--blue);border-radius:8px;padding:10px 12px;background:#fff;box-shadow:0 1px 3px rgba(9,9,40,.08)}
+.chk{width:16px;height:16px;border-radius:4px;border:1.5px solid var(--bd);flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.chk.on{background:var(--blue);border-color:var(--blue);color:#fff;font-size:11px;font-weight:700}
+</style></head><body>
+<div class="hd">
+  <button class="back"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"><path d="M15 6l-6 6 6 6"/></svg></button>
+  <div><div class="ttl">Conditional formatting</div><div class="sub">Color cards by field values</div></div>
+</div>
+<div class="bodyc" style="display:flex;flex-direction:column;gap:14px">
+  <div class="row" style="background:var(--grnbg);border-radius:10px;padding:10px 14px;gap:8px">
+    <span class="dotlive"></span>
+    <div style="font-size:12.5px;color:var(--grn);font-weight:600;flex:1">4 cards selected &middot; 6 fields detected</div>
+    <div style="font-size:12px;color:var(--grn);text-decoration:underline">updates live</div>
+  </div>
+  <div class="card" style="display:flex;flex-direction:column;gap:12px">
+    <div class="lbl" style="margin:0">When</div>
+    <div class="row">
+      <div class="selwrap" style="flex:1.2"><select class="sel"><option>Department</option></select></div>
+      <div class="selwrap" style="flex:1"><select class="sel"><option>contains</option></select></div>
+    </div>
+    <input class="inp" value="Sales"/>
+    <div style="border-top:1px dashed var(--bd)"></div>
+    <div class="lbl" style="margin:0">Apply style</div>
+    <div class="row" style="gap:8px;flex-wrap:wrap">
+      <div style="width:30px;height:30px;border-radius:50%;background:#f8d84c"></div>
+      <div style="width:30px;height:30px;border-radius:50%;background:#f9a34b"></div>
+      <div style="width:30px;height:30px;border-radius:50%;background:#ff6969"></div>
+      <div style="width:30px;height:30px;border-radius:50%;background:#35c05a;box-shadow:0 0 0 2px #fff,0 0 0 4px var(--blue)"></div>
+      <div style="width:30px;height:30px;border-radius:50%;background:#5f94e0"></div>
+      <div style="width:30px;height:30px;border-radius:50%;background:#8778dd"></div>
+      <div style="width:30px;height:30px;border-radius:50%;border:1.5px dashed #b8b8cc;display:flex;align-items:center;justify-content:center;color:var(--mut);font-size:16px;font-weight:300">+</div>
+    </div>
+    <div class="row" style="justify-content:space-between">
+      <span style="font-size:13px">Fill card background</span><span class="sw on"></span>
+    </div>
+  </div>
+  <div>
+    <div class="lbl">Preview</div>
+    <div class="minicard" style="border-left-color:#35c05a;background:#eafaf0">
+      <div style="font-weight:600;font-size:13px;margin-bottom:6px">Jane Smith</div>
+      <div class="row" style="gap:6px"><span class="pill" style="background:#fff;color:var(--mut);border:1px solid var(--bd);font-weight:500">Department: Sales</span><span class="pill" style="background:#fff;color:var(--mut);border:1px solid var(--bd);font-weight:500">New York</span></div>
+    </div>
+    <div class="row" style="margin-top:10px;gap:8px">
+      <div style="flex:1;height:6px;border-radius:99px;background:var(--bg);overflow:hidden"><div style="width:75%;height:100%;background:var(--grn);border-radius:99px"></div></div>
+      <span style="font-size:12px;color:var(--mut);font-weight:600">3 of 4 cards match</span>
+    </div>
+  </div>
+</div>
+<div class="ft"><button class="btn btn-g">Reset</button><button class="btn btn-p">Apply to 3 cards</button></div>
+</body></html>

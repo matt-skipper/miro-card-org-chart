@@ -1,0 +1,71 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><style>
+:root{--blue:#4262ff;--blue-bg:#eef1ff;--ink:#15151e;--mut:#69697f;--bd:#e4e4ee;--bg:#f7f7fb;--grn:#11845b;--grnbg:#e8f6f0;--amb:#b45309;--ambbg:#fef3e2}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Arial,sans-serif;color:var(--ink);background:#fff;display:flex;flex-direction:column;height:100vh;font-size:14px;-webkit-font-smoothing:antialiased}
+.hd{display:flex;align-items:center;gap:10px;padding:14px 20px;border-bottom:1px solid var(--bd);flex-shrink:0}
+.hd .ttl{font-size:15px;font-weight:600}
+.hd .sub{font-size:12px;color:var(--mut);margin-top:1px}
+.appic{width:30px;height:30px;border-radius:8px;background:var(--blue);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.back{width:28px;height:28px;border-radius:8px;border:1px solid var(--bd);background:#fff;display:flex;align-items:center;justify-content:center;color:var(--mut);flex-shrink:0}
+.x{margin-left:auto;width:28px;height:28px;border-radius:8px;border:none;background:none;color:var(--mut);font-size:18px;display:flex;align-items:center;justify-content:center}
+.bodyc{flex:1;overflow:auto;padding:20px}
+.card{border:1px solid var(--bd);border-radius:14px;padding:16px;background:#fff}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:none;border-radius:8px;font-weight:600;font-size:14px;cursor:pointer;padding:10px 18px;font-family:inherit}
+.btn-p{background:var(--blue);color:#fff;box-shadow:0 1px 2px rgba(66,98,255,.35)}
+.btn-s{background:#fff;color:var(--ink);border:1px solid var(--bd)}
+.btn-g{background:none;color:var(--mut);font-weight:500}
+.btn-full{width:100%}
+.lbl{font-size:12px;font-weight:600;color:var(--mut);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px}
+.sel{width:100%;appearance:none;border:1px solid var(--bd);border-radius:8px;padding:9px 30px 9px 12px;font-size:14px;font-family:inherit;color:var(--ink);background:#fff}
+.selwrap{position:relative}
+.selwrap::after{content:'';position:absolute;right:13px;top:50%;width:7px;height:7px;border-right:1.8px solid var(--mut);border-bottom:1.8px solid var(--mut);transform:translateY(-70%) rotate(45deg);pointer-events:none}
+.inp{width:100%;border:1px solid var(--bd);border-radius:8px;padding:9px 12px;font-size:14px;font-family:inherit;color:var(--ink)}
+.pill{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;border-radius:999px;padding:4px 10px}
+.pill-g{background:var(--grnbg);color:var(--grn)}
+.pill-b{background:var(--blue-bg);color:var(--blue)}
+.dotlive{width:7px;height:7px;border-radius:50%;background:var(--grn)}
+.ft{display:flex;justify-content:space-between;align-items:center;padding:14px 20px;border-top:1px solid var(--bd);flex-shrink:0;background:#fff}
+.steps{display:flex;align-items:flex-start;padding:16px 24px 4px;flex-shrink:0}
+.step{display:flex;flex-direction:column;align-items:center;gap:5px;width:64px}
+.dot{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;background:var(--bg);color:var(--mut);border:1.5px solid var(--bd)}
+.step.done .dot{background:var(--blue);border-color:var(--blue);color:#fff}
+.step.act .dot{border-color:var(--blue);color:var(--blue);background:var(--blue-bg)}
+.step .lb{font-size:10.5px;color:var(--mut)}
+.step.act .lb{color:var(--blue);font-weight:600}
+.sbar{height:2px;flex:1;background:var(--bd);margin-top:11px}
+.sbar.done{background:var(--blue)}
+.sw{width:34px;height:20px;border-radius:999px;background:#d6d6e2;position:relative;flex-shrink:0}
+.sw.on{background:var(--blue)}
+.sw::after{content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.25)}
+.sw.on::after{left:auto;right:2px}
+.row{display:flex;align-items:center;gap:10px}
+.minicard{border:1px solid var(--bd);border-left:5px solid var(--blue);border-radius:8px;padding:10px 12px;background:#fff;box-shadow:0 1px 3px rgba(9,9,40,.08)}
+.chk{width:16px;height:16px;border-radius:4px;border:1.5px solid var(--bd);flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.chk.on{background:var(--blue);border-color:var(--blue);color:#fff;font-size:11px;font-weight:700}
+</style></head><body>
+<div class="hd" style="border-bottom:none;padding-bottom:0"><div class="ttl" style="font-size:16px">Create org chart</div><button class="x">&#10005;</button></div>
+<div class="steps"><div class="step done"><div class="dot"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M5 13l4 4 10-10"/></svg></div><div class="lb">Layout</div></div><div class="sbar done"></div><div class="step done"><div class="dot"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M5 13l4 4 10-10"/></svg></div><div class="lb">Upload</div></div><div class="sbar done"></div><div class="step done"><div class="dot"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><path d="M5 13l4 4 10-10"/></svg></div><div class="lb">Map</div></div><div class="sbar done"></div><div class="step act"><div class="dot">4</div><div class="lb">Fields</div></div></div>
+<div class="bodyc" style="padding-top:14px;display:flex;flex-direction:column;gap:12px">
+  <div>
+    <div style="font-size:15px;font-weight:600;margin-bottom:4px">Choose card fields</div>
+    <div style="font-size:12.5px;color:var(--mut)">These columns become fields on every card.</div>
+  </div>
+  <div class="row">
+    <input class="inp" placeholder="Search columns&hellip;" style="flex:1"/>
+    <span class="pill pill-b" style="flex-shrink:0">4 of 20 selected</span>
+  </div>
+  <div style="border:1px solid var(--bd);border-radius:12px;padding:2px 12px;max-height:240px;overflow:auto">
+    <label class="row" style="padding:9px 4px;border-bottom:1px solid var(--bg);gap:10px"><span class="chk on">&#10003;</span><span style="flex:1;font-size:13.5px">Title</span></label>
+    <label class="row" style="padding:9px 4px;border-bottom:1px solid var(--bg);gap:10px"><span class="chk on">&#10003;</span><span style="flex:1;font-size:13.5px">Department</span></label>
+    <label class="row" style="padding:9px 4px;border-bottom:1px solid var(--bg);gap:10px"><span class="chk on">&#10003;</span><span style="flex:1;font-size:13.5px">Location</span></label>
+    <label class="row" style="padding:9px 4px;border-bottom:1px solid var(--bg);gap:10px"><span class="chk on">&#10003;</span><span style="flex:1;font-size:13.5px">Start date</span></label>
+    <label class="row" style="padding:9px 4px;border-bottom:1px solid var(--bg);gap:10px"><span class="chk"></span><span style="flex:1;font-size:13.5px;color:var(--mut)">Cost center</span></label>
+    <label class="row" style="padding:9px 4px;gap:10px"><span class="chk"></span><span style="flex:1;font-size:13.5px;color:var(--mut)">Employment type</span></label>
+  </div>
+  <div class="card row" style="background:var(--bg);border:none;padding:12px 16px;gap:10px">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#69697f" stroke-width="2"><rect x="9" y="2" width="6" height="5" rx="1"/><rect x="2" y="16" width="6" height="5" rx="1"/><rect x="16" y="16" width="6" height="5" rx="1"/><path d="M12 7v4M12 11H5v5M12 11h7v5"/></svg>
+    <span style="font-size:12.5px;color:var(--mut)">Vertical layout &middot; people.csv &middot; <b style="color:var(--ink)">142 cards</b> &middot; 4 fields per card</span>
+  </div>
+</div>
+<div class="ft"><button class="btn btn-s">Back</button><button class="btn btn-p">Create org chart</button></div>
+</body></html>

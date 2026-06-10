@@ -1,41 +1,375 @@
 <!DOCTYPE html>
 <html lang="en">
+  <!--
+    "About this app" landing page for the Miro Card Org Chart app.
+    Served at the app root URL. Inside Miro this page is loaded invisibly —
+    src/index.js (below) registers the icon-click handler that opens the panel.
+    Styles are inline (<style>) and self-contained; CSP allows 'unsafe-inline' for styles.
+  -->
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="stylesheet" href="/src/assets/style.css" />
     <script src="https://miro.com/app/static/sdk/v2/miro.js"></script>
-    <title>Miro Card Org Chart</title>
+    <title>Card Org Chart — About this app</title>
+    <style>
+      :root {
+        --lp-blue: #4262ff;
+        --lp-blue-bg: #eef1ff;
+        --lp-ink: #15151e;
+        --lp-mut: #69697f;
+        --lp-bd: #e4e4ee;
+        --lp-bg: #f7f7fb;
+        --lp-grn: #11845b;
+        --lp-grnbg: #e8f6f0;
+      }
+      body.about-page {
+        display: block;
+        margin: 0;
+        background: var(--lp-bg);
+        color: var(--lp-ink);
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+      body.about-page #root {
+        padding: 0;
+        overflow: visible;
+      }
+      .lp-wrap {
+        max-width: 880px;
+        margin: 0 auto;
+        padding: 48px 24px 64px;
+      }
+      .lp-hero {
+        background: linear-gradient(180deg, #f5f7ff 0%, #ffffff 85%);
+        border: 1px solid var(--lp-bd);
+        border-radius: 18px;
+        padding: 48px 32px 40px;
+        text-align: center;
+        margin-bottom: 24px;
+      }
+      .lp-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        background: var(--lp-blue-bg);
+        color: var(--lp-blue);
+        font-size: 12px;
+        font-weight: 600;
+        border-radius: 999px;
+        padding: 5px 12px;
+        margin-bottom: 18px;
+      }
+      .lp-hero h1 {
+        margin: 0 0 10px;
+        font-size: 34px;
+        letter-spacing: -0.02em;
+      }
+      .lp-hero .lp-tagline {
+        margin: 0 auto 26px;
+        max-width: 520px;
+        font-size: 16px;
+        line-height: 1.55;
+        color: var(--lp-mut);
+      }
+      .lp-actions {
+        display: flex;
+        justify-content: center;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      .lp-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        border-radius: 10px;
+        padding: 11px 20px;
+        font-size: 14px;
+        font-weight: 600;
+        text-decoration: none;
+        border: 1px solid transparent;
+      }
+      .lp-btn-primary {
+        background: var(--lp-blue);
+        color: #fff;
+        box-shadow: 0 1px 2px rgba(66, 98, 255, 0.35);
+      }
+      .lp-btn-secondary {
+        background: #fff;
+        color: var(--lp-ink);
+        border-color: var(--lp-bd);
+      }
+      .lp-section-title {
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--lp-mut);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin: 36px 0 14px;
+      }
+      .lp-steps {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 14px;
+      }
+      .lp-card {
+        background: #fff;
+        border: 1px solid var(--lp-bd);
+        border-radius: 14px;
+        padding: 20px;
+      }
+      .lp-step-num {
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        background: var(--lp-blue);
+        color: #fff;
+        font-size: 13px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 12px;
+      }
+      .lp-card h3 {
+        margin: 0 0 6px;
+        font-size: 15px;
+      }
+      .lp-card p {
+        margin: 0;
+        font-size: 13.5px;
+        line-height: 1.55;
+        color: var(--lp-mut);
+      }
+      .lp-features {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 14px;
+      }
+      .lp-feature {
+        display: flex;
+        gap: 14px;
+        align-items: flex-start;
+      }
+      .lp-feature-icon {
+        flex-shrink: 0;
+        width: 38px;
+        height: 38px;
+        border-radius: 10px;
+        background: var(--lp-blue-bg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .lp-csv {
+        display: grid;
+        grid-template-columns: 1.2fr 1fr;
+        gap: 14px;
+      }
+      .lp-csv table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13px;
+      }
+      .lp-csv th,
+      .lp-csv td {
+        text-align: left;
+        padding: 8px 10px;
+        border-bottom: 1px solid var(--lp-bg);
+        vertical-align: top;
+      }
+      .lp-csv th {
+        color: var(--lp-mut);
+        font-weight: 600;
+        white-space: nowrap;
+      }
+      .lp-limits {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        font-size: 13.5px;
+        line-height: 1.5;
+        color: var(--lp-mut);
+      }
+      .lp-limits li {
+        display: flex;
+        gap: 8px;
+        padding: 5px 0;
+      }
+      .lp-limits .lp-check {
+        color: var(--lp-grn);
+        font-weight: 700;
+      }
+      .lp-note {
+        background: var(--lp-grnbg);
+        border-radius: 10px;
+        padding: 12px 16px;
+        font-size: 13px;
+        color: var(--lp-grn);
+        font-weight: 600;
+        margin-top: 14px;
+      }
+      .lp-footer {
+        margin-top: 40px;
+        padding-top: 20px;
+        border-top: 1px solid var(--lp-bd);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        flex-wrap: wrap;
+        font-size: 13px;
+        color: var(--lp-mut);
+      }
+      .lp-footer a {
+        color: var(--lp-blue);
+        font-weight: 600;
+        text-decoration: none;
+      }
+      @media (max-width: 680px) {
+        .lp-steps,
+        .lp-features,
+        .lp-csv {
+          grid-template-columns: 1fr;
+        }
+        .lp-hero h1 {
+          font-size: 27px;
+        }
+      }
+    </style>
   </head>
-  <body>
-    <div id="root" aria-hidden="true">
-      <div class="grid container">
-        <div class="cs1 ce12">
-          <img src="/src/assets/welcome.png" alt="" />
-        </div>
-        <div class="cs1 ce12">
-          <p style="font-size: large">Great, your app is running locally</p>
-          <p>
-            You can now create your Developer team to get your app running in
-            Miro.
+  <body class="about-page">
+    <div id="root">
+      <main class="lp-wrap">
+        <!-- ── Hero ──────────────────────────────────────────────────────── -->
+        <section class="lp-hero">
+          <span class="lp-badge">Miro Web SDK app</span>
+          <h1>Card Org Chart</h1>
+          <p class="lp-tagline">
+            Turn a CSV of your people data into an organizational chart on your Miro board —
+            cards for every person, elbow connectors for every reporting line.
           </p>
+          <svg width="300" height="120" viewBox="0 0 300 120" aria-hidden="true" style="margin: 0 auto 26px; display: block">
+            <g stroke="#aab8f0" stroke-width="1.6" fill="none">
+              <path d="M150 30v14M75 44h150M75 44v14M225 44v14M150 44v14" />
+              <path d="M75 80v8M48 88h54M48 88v8M102 88v8" />
+            </g>
+            <rect x="118" y="8" width="64" height="22" rx="6" fill="#4262ff" />
+            <rect x="43" y="58" width="64" height="22" rx="6" fill="#8fa3ec" />
+            <rect x="118" y="58" width="64" height="22" rx="6" fill="#8fa3ec" />
+            <rect x="193" y="58" width="64" height="22" rx="6" fill="#8fa3ec" />
+            <rect x="28" y="96" width="40" height="16" rx="5" fill="#ccd5f7" />
+            <rect x="82" y="96" width="40" height="16" rx="5" fill="#ccd5f7" />
+          </svg>
+          <div class="lp-actions">
+            <a class="lp-btn lp-btn-primary" href="/app.html">Preview the app panel</a>
+            <a class="lp-btn lp-btn-secondary" href="/Miro_OrgChart_Template.csv" download="Miro_OrgChart_Template.csv">Download CSV template</a>
+          </div>
+        </section>
+
+        <!-- ── How it works ──────────────────────────────────────────────── -->
+        <h2 class="lp-section-title">How it works</h2>
+        <div class="lp-steps">
+          <div class="lp-card">
+            <div class="lp-step-num">1</div>
+            <h3>Choose a layout</h3>
+            <p>Vertical for a classic top-down chart, or horizontal for deep teams that grow left-to-right.</p>
+          </div>
+          <div class="lp-card">
+            <div class="lp-step-num">2</div>
+            <h3>Upload &amp; map your CSV</h3>
+            <p>Point the wizard at your name, employee ID, and supervisor ID columns, then pick up to 20 extra columns as card fields.</p>
+          </div>
+          <div class="lp-card">
+            <div class="lp-step-num">3</div>
+            <h3>Get your chart</h3>
+            <p>Cards and reporting lines are created near your viewport using a Buchheim tree layout — compact, symmetric, no overlaps.</p>
+          </div>
         </div>
-        <div class="cs1 ce12">
-          <a
-            class="button button-primary"
-            href="https://developers.miro.com/docs/create-a-developer-team"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Create a Developer team
-          </a>
+
+        <!-- ── Features ──────────────────────────────────────────────────── -->
+        <h2 class="lp-section-title">Features</h2>
+        <div class="lp-features">
+          <div class="lp-card lp-feature">
+            <div class="lp-feature-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4262ff" stroke-width="2">
+                <rect x="9" y="2" width="6" height="5" rx="1" /><rect x="2" y="16" width="6" height="5" rx="1" />
+                <rect x="16" y="16" width="6" height="5" rx="1" /><path d="M12 7v4M12 11H5v5M12 11h7v5" />
+              </svg>
+            </div>
+            <div>
+              <h3>Two layout modes</h3>
+              <p>Vertical and horizontal tree layouts, with an IC stacking pass that keeps large teams of individual contributors compact.</p>
+            </div>
+          </div>
+          <div class="lp-card lp-feature">
+            <div class="lp-feature-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4262ff" stroke-width="2">
+                <path d="M12 2l2.4 6.2L21 9l-5 4.4L17.5 21 12 17.3 6.5 21 8 13.4 3 9l6.6-.8z" stroke-linejoin="round" />
+              </svg>
+            </div>
+            <div>
+              <h3>Conditional formatting</h3>
+              <p>Color cards by field values — pick a field, a text or numeric condition, and a theme color (presets or fully custom).</p>
+            </div>
+          </div>
+          <div class="lp-card lp-feature">
+            <div class="lp-feature-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4262ff" stroke-width="2">
+                <path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z" />
+              </svg>
+            </div>
+            <div>
+              <h3>Edit cards from the panel</h3>
+              <p>Select any card to view its fields and update values in place — changes sync straight back to the board.</p>
+            </div>
+          </div>
+          <div class="lp-card lp-feature">
+            <div class="lp-feature-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#4262ff" stroke-width="2">
+                <path d="M12 22s8-3.6 8-10V5l-8-3-8 3v7c0 6.4 8 10 8 10z" />
+              </svg>
+            </div>
+            <div>
+              <h3>Hardened imports</h3>
+              <p>Uploads are validated before anything touches your board — file type, size, and row/column limits are checked up front.</p>
+            </div>
+          </div>
         </div>
-        <div class="cs1 ce12">
-          <p>To see your app, open it in a app panel on Miro.com, or preview it at <a href="/app.html" class="link link-primary">this url</a></p>
+
+        <!-- ── CSV requirements ──────────────────────────────────────────── -->
+        <h2 class="lp-section-title">CSV requirements</h2>
+        <div class="lp-csv">
+          <div class="lp-card">
+            <table>
+              <tr><th>Employee Name</th><td>Becomes the card title. Rows with an empty name are skipped.</td></tr>
+              <tr><th>Employee ID</th><td>Stable identifier per person — work email works well. Matching is case-insensitive.</td></tr>
+              <tr><th>Supervisor ID</th><td>Must match another row's Employee ID. Empty or unknown means the person is a root.</td></tr>
+            </table>
+          </div>
+          <div class="lp-card">
+            <ul class="lp-limits">
+              <li><span class="lp-check">✓</span> .csv with a header row</li>
+              <li><span class="lp-check">✓</span> Up to 5 MB per file</li>
+              <li><span class="lp-check">✓</span> Up to 1,000 data rows</li>
+              <li><span class="lp-check">✓</span> Up to 100 columns</li>
+              <li><span class="lp-check">✓</span> Up to 20 card fields per card</li>
+            </ul>
+          </div>
         </div>
-      </div>
+        <p class="lp-note">
+          To use the app on a board: open any Miro board, find Card Org Chart in the apps toolbar,
+          and click the icon — the panel opens on the right.
+        </p>
+
+        <!-- ── Footer ────────────────────────────────────────────────────── -->
+        <footer class="lp-footer">
+          <span>MIT licensed · Built with the Miro Web SDK and Mirotone</span>
+          <a href="mailto:cardorgchart-app@miro.com?subject=Miro%20Card%20Org%20Chart%20Feedback">Send feedback</a>
+        </footer>
+      </main>
     </div>
-    <!-- Registers Miro icon click → open app.html panel -->
+    <!-- Registers Miro icon click → open app.html panel. Do not remove. -->
     <script type="module" src="/src/index.js"></script>
   </body>
 </html>
