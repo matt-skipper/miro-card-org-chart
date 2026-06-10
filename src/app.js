@@ -1820,10 +1820,15 @@ function setupConditionalFormatting() {
         card.style.fillBackground = fillBg;
         await card.sync();
       }
+      // Board notification once everything has synced, so users know the work
+      // is complete (https://developers.miro.com/docs/websdk-reference-notifications)
+      await miro.board.notifications.showInfo(
+        `Formatting applied to ${matches.length} card${matches.length === 1 ? '' : 's'}`,
+      );
       showInlineMessage(
         inlineMsgSlot,
         'success',
-        `Applied style to ${matches.length} card${matches.length === 1 ? '' : 's'}.`,
+        `Formatting applied to ${matches.length} card${matches.length === 1 ? '' : 's'}.`,
       );
     } catch (err) {
       console.error(err);
@@ -1853,6 +1858,7 @@ function setupSingleCardDetails() {
   const metaEl     = document.getElementById('card-meta');
   const fieldsEl   = document.getElementById('single-card-fields');
   const editBtn    = document.getElementById('edit-card-fields-btn');
+  const editLabel  = document.getElementById('edit-card-fields-label');
   const saveBtn    = document.getElementById('save-card-fields-btn');
   const msgSlot    = document.getElementById('details-inline-msg');
   if (!fieldsEl || !editBtn) return;
@@ -1913,7 +1919,7 @@ function setupSingleCardDetails() {
 
   function exitEditMode() {
     isEditing = false;
-    editBtn.textContent = 'Edit';
+    if (editLabel) editLabel.textContent = 'Edit';
     saveBtn.style.display = 'none';
     renderViewMode();
   }
@@ -1960,7 +1966,7 @@ function setupSingleCardDetails() {
     isEditing = !isEditing;
     if (isEditing) {
       renderEditMode();
-      editBtn.textContent = 'Cancel';
+      if (editLabel) editLabel.textContent = 'Cancel';
       saveBtn.style.display = 'block';
     } else {
       exitEditMode(); // Cancel: revert without syncing

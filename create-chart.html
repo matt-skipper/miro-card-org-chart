@@ -161,7 +161,18 @@
               <input type="checkbox" id="include-header-values" />
               <span>Include header values</span>
             </label>
-            <p class="include-headers-help">Show fields as &ldquo;Department: Sales&rdquo; on cards</p>
+            <span class="tooltip-anchor" tabindex="0"
+                  aria-label="Include header from CSV to Miro Card fields, for example Department: Sales">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                   stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="10"/>
+                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+                <line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+              <span class="tooltip-text" role="tooltip">
+                Include header from CSV to Miro Card fields. e.g. &ldquo;Department: Sales&rdquo;
+              </span>
+            </span>
           </div>
         </div>
         <div class="wizard-footer">
@@ -217,7 +228,7 @@
 
       <!-- ── Step 4: Card fields ─────────────────────────────────────────────── -->
       <div id="view-fields" class="wizard-view">
-        <div class="wizard-body">
+        <div class="wizard-body fields-body">
           <h1 class="wizard-title">Choose card fields</h1>
           <p class="wizard-subtitle">These columns become fields on every card.</p>
 
@@ -235,7 +246,10 @@
           </div>
 
           <div id="fields-list" class="fields-list"></div>
+        </div>
 
+        <!-- Pinned above the footer divider so it stays put while the list scrolls -->
+        <div class="import-summary-bar">
           <div id="import-summary" class="import-summary"></div>
         </div>
         <div class="wizard-footer">

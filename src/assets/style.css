@@ -182,10 +182,6 @@ body.panel-view #root {
   color: var(--app-mut);
 }
 
-.hero-cta {
-  width: 100%;
-}
-
 .hero-template-link {
   display: inline-flex;
   align-items: center;
@@ -422,8 +418,14 @@ body.panel-view #root {
   white-space: nowrap;
 }
 
-.form-primary-action {
+/* Full-width primary actions: force centered label (Mirotone buttons left-align
+   their content when stretched to width: 100%) */
+.form-primary-action,
+.hero-cta {
   width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   text-align: center;
 }
 
@@ -498,6 +500,39 @@ body.panel-view #root {
 .card-identity-meta {
   font-size: 12px;
   color: var(--app-mut);
+}
+
+/* Compact ghost button (e.g. Edit on the card identity block) */
+.panel-ghost-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border: 1px solid var(--app-bd);
+  border-radius: 8px;
+  background: none;
+  color: var(--app-mut);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: color 120ms ease, border-color 120ms ease;
+}
+
+.panel-ghost-btn:hover {
+  color: var(--app-ink);
+  border-color: var(--app-mut);
+}
+
+.panel-ghost-btn:focus-visible {
+  outline: 2px solid var(--app-blue);
+  outline-offset: 2px;
+}
+
+.panel-ghost-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
 }
 
 /* View mode: definition list rows */
@@ -1078,15 +1113,70 @@ body.panel-view #root {
   outline-offset: 2px;
 }
 
-/* Include header values + inline helper (replaces hover tooltip) */
+/* Include header values + info tooltip (shown on hover AND keyboard focus) */
+.include-headers-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .include-headers-row .checkbox {
   margin-bottom: 0;
 }
 
-.include-headers-help {
-  margin: 2px 0 0 28px;
-  font-size: 11.5px;
+.tooltip-anchor {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  line-height: 0;
   color: var(--app-mut);
+  cursor: default;
+  border-radius: 4px;
+}
+
+.tooltip-anchor:hover {
+  color: var(--app-ink);
+}
+
+.tooltip-anchor:focus-visible {
+  outline: 2px solid var(--app-blue);
+  outline-offset: 2px;
+}
+
+.tooltip-text {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 220px;
+  padding: 10px 12px;
+  background: #1a1a1a;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.45;
+  border-radius: 8px;
+  pointer-events: none;
+  white-space: normal;
+  opacity: 0;
+  transition: opacity 120ms ease;
+  z-index: 200;
+}
+
+.tooltip-text::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: #1a1a1a;
+}
+
+.tooltip-anchor:hover .tooltip-text,
+.tooltip-anchor:focus .tooltip-text,
+.tooltip-anchor:focus-visible .tooltip-text {
+  opacity: 1;
 }
 
 /* ── Mapping step (step 3) ───────────────────────────────────────────────── */
@@ -1183,8 +1273,16 @@ body.panel-view #root {
   border-bottom: 1px solid var(--app-bd);
 }
 
+/* Fields step: the list flexes to fill all remaining height (the summary lives
+   in a pinned bar above the footer), so the scroll menu shows as many columns
+   as the modal allows. */
+.fields-body {
+  overflow: hidden;
+}
+
 .fields-list {
-  max-height: 190px;
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
 }
 
@@ -1207,7 +1305,12 @@ body.panel-view #root {
   color: var(--app-mut);
 }
 
-/* Import summary */
+/* Import summary — pinned bar between the scroll area and the footer */
+.import-summary-bar {
+  flex-shrink: 0;
+  padding: 10px 24px 12px;
+}
+
 .import-summary {
   display: flex;
   align-items: center;
