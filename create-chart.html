@@ -17,7 +17,8 @@
   </head>
   <body class="upload-modal">
     <!-- Progress overlay: covers the modal while cards/connectors are created -->
-    <div id="view-loading" role="status" aria-live="polite">
+    <!-- Visual counter updates every card; announcements are throttled via #progress-announcer -->
+    <div id="view-loading">
       <svg width="120" height="68" viewBox="0 0 150 74" aria-hidden="true">
         <g stroke="#aab8f0" stroke-width="1.4" fill="none"><path d="M75 18v8M40 26h70M40 26v8M110 26v8M75 26v8"/></g>
         <rect x="57" y="4" width="36" height="14" rx="4" fill="#4262ff"/>
@@ -27,22 +28,25 @@
       </svg>
       <p class="progress-title">Building your org chart&hellip;</p>
       <p id="progress-phase" class="progress-phase">Placing cards on the board</p>
-      <div class="progress-track" aria-hidden="true"><div id="progress-bar" class="progress-bar"></div></div>
-      <p id="progress-count" class="progress-count"></p>
+      <div id="progress-track" class="progress-track" role="progressbar" aria-label="Org chart creation progress"
+           aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="progress-bar" class="progress-bar"></div></div>
+      <p id="progress-count" class="progress-count" aria-hidden="true"></p>
       <p class="progress-hint">Keep this window open &mdash; we&rsquo;ll zoom you to the chart when it&rsquo;s ready.</p>
+      <!-- Screen-reader announcements: phase changes + ~10% milestones only -->
+      <div id="progress-announcer" class="visually-hidden" aria-live="polite"></div>
     </div>
 
     <div id="root">
 
       <!-- ── Stepper ─────────────────────────────────────────────────────────── -->
       <nav class="wizard-steps" aria-label="Progress">
-        <div class="wizard-step" data-step="1"><div class="wizard-step-dot">1</div><div class="wizard-step-label">Layout</div></div>
+        <div class="wizard-step" data-step="1"><div class="wizard-step-dot" aria-hidden="true">1</div><div class="wizard-step-label">Layout<span class="visually-hidden" data-step-state></span></div></div>
         <div class="wizard-step-bar" data-bar="1"></div>
-        <div class="wizard-step" data-step="2"><div class="wizard-step-dot">2</div><div class="wizard-step-label">Upload</div></div>
+        <div class="wizard-step" data-step="2"><div class="wizard-step-dot" aria-hidden="true">2</div><div class="wizard-step-label">Upload<span class="visually-hidden" data-step-state></span></div></div>
         <div class="wizard-step-bar" data-bar="2"></div>
-        <div class="wizard-step" data-step="3"><div class="wizard-step-dot">3</div><div class="wizard-step-label">Map</div></div>
+        <div class="wizard-step" data-step="3"><div class="wizard-step-dot" aria-hidden="true">3</div><div class="wizard-step-label">Map<span class="visually-hidden" data-step-state></span></div></div>
         <div class="wizard-step-bar" data-bar="3"></div>
-        <div class="wizard-step" data-step="4"><div class="wizard-step-dot">4</div><div class="wizard-step-label">Fields</div></div>
+        <div class="wizard-step" data-step="4"><div class="wizard-step-dot" aria-hidden="true">4</div><div class="wizard-step-label">Fields<span class="visually-hidden" data-step-state></span></div></div>
       </nav>
 
       <!-- ── Step 1: Choose layout ───────────────────────────────────────────── -->
@@ -161,15 +165,15 @@
               <input type="checkbox" id="include-header-values" />
               <span>Include header values</span>
             </label>
-            <span class="tooltip-anchor" tabindex="0"
-                  aria-label="Include header from CSV to Miro Card fields, for example Department: Sales">
+            <span class="tooltip-anchor" tabindex="0" aria-label="More information about Include header values"
+                  aria-describedby="include-headers-tip">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <circle cx="12" cy="12" r="10"/>
                 <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
                 <line x1="12" y1="17" x2="12.01" y2="17"/>
               </svg>
-              <span class="tooltip-text" role="tooltip">
+              <span class="tooltip-text" role="tooltip" id="include-headers-tip">
                 Include header from CSV to Miro Card fields. e.g. &ldquo;Department: Sales&rdquo;
               </span>
             </span>

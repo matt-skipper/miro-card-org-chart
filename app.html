@@ -131,8 +131,10 @@
             <div class="rule-card">
               <p class="panel-section-label">When</p>
               <div class="rule-row">
-                <select id="format-field" class="select" aria-label="Field"></select>
-                <select id="format-operator" class="select" aria-label="Condition">
+                <label class="visually-hidden" for="format-field">Field</label>
+                <select id="format-field" class="select"></select>
+                <label class="visually-hidden" for="format-operator">Condition</label>
+                <select id="format-operator" class="select">
                   <optgroup label="Text">
                     <option value="equals">equals</option>
                     <option value="contains">contains</option>
@@ -150,7 +152,8 @@
                   </optgroup>
                 </select>
               </div>
-              <input type="text" id="format-value" class="input" placeholder="e.g. New York" aria-label="Value" />
+              <label class="visually-hidden" for="format-value">Value to compare against</label>
+              <input type="text" id="format-value" class="input" placeholder="e.g. New York" />
 
               <div class="rule-divider"></div>
 

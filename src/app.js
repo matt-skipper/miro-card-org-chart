@@ -873,6 +873,25 @@ function setupCreateChartButton() {
   });
 }
 
+// ─── Tooltip Esc Dismissal (WCAG 1.4.13) ─────────────────────────────────────
+// Content shown on hover/focus must be dismissible without moving focus.
+// Esc adds .tip-hidden (CSS suppresses the tooltip); leaving/blurring the
+// anchor clears it so the tooltip works again on the next hover/focus.
+
+function setupTooltipDismissal() {
+  const anchors = document.querySelectorAll('.tooltip-anchor');
+  if (!anchors.length) return;
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    anchors.forEach((a) => a.classList.add('tip-hidden'));
+  });
+  anchors.forEach((anchor) => {
+    ['mouseleave', 'blur'].forEach((evt) => {
+      anchor.addEventListener(evt, () => anchor.classList.remove('tip-hidden'));
+    });
+  });
+}
+
 function setupModalInitialFocus() {
   if (!document.body.classList.contains('upload-modal')) return;
   // Pull focus into our iframe so the modal's X button loses its auto-focus highlight.
@@ -952,8 +971,15 @@ function setupFileUpload() {
     });
     const activeIdx = wizardViews.indexOf(activeView); // -1 hides all (progress)
     stepEls.forEach((el, i) => {
-      el.classList.toggle('is-active', i === activeIdx);
-      el.classList.toggle('is-done', activeIdx > i || activeIdx === -1);
+      const isActive = i === activeIdx;
+      const isDone = activeIdx > i || activeIdx === -1;
+      el.classList.toggle('is-active', isActive);
+      el.classList.toggle('is-done', isDone);
+      // State for screen readers — visual state is color/checkmark only (WCAG 1.4.1/4.1.2)
+      if (isActive) el.setAttribute('aria-current', 'step');
+      else el.removeAttribute('aria-current');
+      const stateEl = el.querySelector('[data-step-state]');
+      if (stateEl) stateEl.textContent = isDone ? ', completed' : (isActive ? ', current step' : '');
     });
     stepBars.forEach((bar, i) => {
       bar.classList.toggle('is-done', activeIdx > i || activeIdx === -1);
@@ -963,13 +989,41 @@ function setupFileUpload() {
   showWizardView(viewLayout || viewUpload);
 
   // ── Step 1: layout choice ─────────────────────────────────────────────────
+  // ARIA radio pattern: one tab stop, arrow keys move + select (mirrors the
+  // color swatch grid implementation).
+
+  function syncLayoutTabstops() {
+    const opts = Array.from(layoutOptions);
+    const selectedIdx = opts.findIndex((o) => o.getAttribute('aria-checked') === 'true');
+    opts.forEach((o, i) => {
+      o.tabIndex = (selectedIdx === -1 ? i === 0 : i === selectedIdx) ? 0 : -1;
+    });
+  }
+
   layoutOptions.forEach((opt) => {
     opt.addEventListener('click', () => {
       selectedLayout = opt.dataset.layout;
       layoutOptions.forEach((o) => o.setAttribute('aria-checked', String(o === opt)));
+      syncLayoutTabstops();
       if (layoutNextBtn) layoutNextBtn.disabled = false;
     });
   });
+  syncLayoutTabstops();
+
+  const layoutGroup = document.querySelector('.layout-options');
+  if (layoutGroup) {
+    layoutGroup.addEventListener('keydown', (e) => {
+      if (!['ArrowRight', 'ArrowLeft', 'ArrowUp', 'ArrowDown'].includes(e.key)) return;
+      const opts = Array.from(layoutOptions);
+      const idx = opts.indexOf(document.activeElement);
+      if (idx === -1) return;
+      e.preventDefault();
+      const delta = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : -1;
+      const next = opts[(idx + delta + opts.length) % opts.length];
+      next.focus();
+      next.click(); // radio pattern: selection follows focus
+    });
+  }
 
   if (layoutNextBtn) {
     layoutNextBtn.addEventListener('click', () => {
@@ -1328,17 +1382,42 @@ function setupFileUpload() {
 
   // ── Progress overlay ──────────────────────────────────────────────────────
   // Cards fill 0–85% of the bar; connectors fill the remaining 15%.
+  // The visual counter updates per item; screen-reader announcements are
+  // throttled to phase changes + ~10% milestones (a 500-card import would
+  // otherwise fire hundreds of aria-live updates).
+
+  const progressTrack    = document.getElementById('progress-track');
+  const progressAnnouncer = document.getElementById('progress-announcer');
+  let lastAnnouncedDecile = -1;
+  let lastAnnouncedPhase  = '';
 
   function handleProgress({ phase, done, total }) {
     if (!progressBar || !total) return;
+    let percent;
     if (phase === 'cards') {
       if (progressPhase) progressPhase.textContent = 'Placing cards on the board';
       if (progressCount) progressCount.textContent = `${done} of ${total} cards`;
-      progressBar.style.width = `${(done / total) * 85}%`;
+      percent = (done / total) * 85;
     } else {
       if (progressPhase) progressPhase.textContent = 'Drawing reporting lines';
       if (progressCount) progressCount.textContent = `${done} of ${total} connectors`;
-      progressBar.style.width = `${85 + (done / total) * 15}%`;
+      percent = 85 + (done / total) * 15;
+    }
+    progressBar.style.width = `${percent}%`;
+    if (progressTrack) progressTrack.setAttribute('aria-valuenow', String(Math.round(percent)));
+
+    if (progressAnnouncer) {
+      const decile = Math.floor(percent / 10);
+      if (phase !== lastAnnouncedPhase) {
+        lastAnnouncedPhase = phase;
+        lastAnnouncedDecile = decile;
+        progressAnnouncer.textContent = phase === 'cards'
+          ? 'Placing cards on the board'
+          : 'Cards placed. Drawing reporting lines';
+      } else if (decile > lastAnnouncedDecile) {
+        lastAnnouncedDecile = decile;
+        progressAnnouncer.textContent = `${Math.round(percent)} percent complete`;
+      }
     }
   }
 
@@ -1360,6 +1439,9 @@ function setupFileUpload() {
         if (progressBar)   progressBar.style.width = '0%';
         if (progressCount) progressCount.textContent = '';
         if (progressPhase) progressPhase.textContent = 'Placing cards on the board';
+        if (progressTrack) progressTrack.setAttribute('aria-valuenow', '0');
+        lastAnnouncedDecile = -1;
+        lastAnnouncedPhase = '';
         if (loadingEl)     loadingEl.style.display = 'flex';
         showWizardView(null);
         await createCardsFromCSV(selectedFile, mapping, handleProgress);
@@ -1529,8 +1611,14 @@ function setupConditionalFormatting() {
   }
 
   // ── Open popup anchored to the "+" button ───────────────────────────────────
+  // Dialog-pattern focus management: focus moves into the popup (hex input) on
+  // open; Esc or outside-click closes and restores focus to the opener.
+
+  let pickerOpener = null;
+
   function openColorPickerPopup(anchorEl) {
     if (!colorPickerPopup) return;
+    pickerOpener = anchorEl;
     const [r,g,b] = hexToRgb(selectedThemeColor);
     [ph, ps, pb] = rgbToHsb(r, g, b);
 
@@ -1544,12 +1632,28 @@ function setupConditionalFormatting() {
     colorPickerPopup.style.left = left + 'px';
     colorPickerPopup.style.top  = top  + 'px';
     colorPickerPopup.classList.add('is-open');
-    requestAnimationFrame(updatePickerUI);
+    requestAnimationFrame(() => {
+      updatePickerUI();
+      if (colorPickerHex) colorPickerHex.focus({ preventScroll: true });
+    });
   }
 
-  function closeColorPickerPopup() {
-    if (colorPickerPopup) colorPickerPopup.classList.remove('is-open');
+  function closeColorPickerPopup(restoreFocus = false) {
+    if (!colorPickerPopup || !colorPickerPopup.classList.contains('is-open')) return;
+    colorPickerPopup.classList.remove('is-open');
+    if (restoreFocus && pickerOpener && document.contains(pickerOpener)) {
+      pickerOpener.focus({ preventScroll: true });
+    }
+    pickerOpener = null;
   }
+
+  // Esc closes the picker and returns focus to the "+" swatch (WCAG dialog pattern)
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && colorPickerPopup?.classList.contains('is-open')) {
+      e.stopPropagation();
+      closeColorPickerPopup(true);
+    }
+  });
 
   // ── Gradient drag ───────────────────────────────────────────────────────────
   if (cpGradient) {
@@ -1621,12 +1725,14 @@ function setupConditionalFormatting() {
       renderColorSwatches();
       refreshMatch();
       closeColorPickerPopup();
+      // Land keyboard focus on the swatch that was just added/selected
+      formatColor?.querySelector('[aria-checked="true"]')?.focus({ preventScroll: true });
     });
   }
 
   // ── Close on outside click ──────────────────────────────────────────────────
   if (colorPickerPopup) colorPickerPopup.addEventListener('click', (e) => e.stopPropagation());
-  document.addEventListener('click', closeColorPickerPopup);
+  document.addEventListener('click', () => closeColorPickerPopup()); // outside click: close, don't move focus
 
   // ── Swatch rendering ────────────────────────────────────────────────────────
   function renderColorSwatches() {
@@ -2006,6 +2112,7 @@ function init() {
     setupPanelNav();
     setupCreateChartButton();
     setupFeedbackButton();
+    setupTooltipDismissal();
     setupModalInitialFocus();
     setupFileUpload();
     setupConditionalFormatting();

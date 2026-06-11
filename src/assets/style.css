@@ -14,6 +14,8 @@
   --app-ink: #15151e;
   --app-mut: #69697f;
   --app-bd: var(--indigo200, #e4e4ee);
+  /* WCAG 1.4.11: boundary color for interactive components — ≥3:1 on white and on --app-bg */
+  --app-bd-strong: #8a8a9e;
   --app-bg: #f7f7fb;
   --app-grn: #11845b;
   --app-grn-bg: #e8f6f0;
@@ -21,10 +23,33 @@
   --app-amber-bg: #fef3e2;
   --app-red: var(--red600, #d30c0c);
   --app-red-bg: #fdecec;
+  /* WCAG 1.4.3: darker text variants for use ON tinted backgrounds (≥4.5:1 on their tint).
+     The base brand colors stay for buttons (white text) and large/bold uses. */
+  --app-blue-text: #2f4bd6;
+  --app-grn-text: #0d6b49;
+  --app-amber-text: #92400e;
 }
 
 body {
   margin: 0;
+}
+
+/* Screen-reader-only content (stepper states, live announcers, sr-only labels) */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* WCAG 1.4.13: Esc suppresses an open tooltip without moving focus */
+.tooltip-anchor.tip-hidden .tooltip-text {
+  opacity: 0 !important;
 }
 
 img {
@@ -87,7 +112,7 @@ body.panel-view #root {
   width: 28px;
   height: 28px;
   border-radius: 8px;
-  border: 1px solid var(--app-bd);
+  border: 1px solid var(--app-bd-strong);
   background: #fff;
   display: flex;
   align-items: center;
@@ -196,7 +221,7 @@ body.panel-view #root {
   gap: 12px;
   width: 100%;
   padding: 13px 14px;
-  border: 1px solid var(--app-bd);
+  border: 1px solid var(--app-bd-strong);
   border-radius: 14px;
   background: #fff;
   cursor: pointer;
@@ -228,7 +253,7 @@ body.panel-view #root {
 
 .tool-card-icon-amber {
   background: var(--app-amber-bg);
-  color: var(--app-amber);
+  color: var(--app-amber-text);
 }
 
 .tool-card-icon-blue {
@@ -256,7 +281,7 @@ body.panel-view #root {
 }
 
 .tool-card-chevron {
-  color: #9a9ab0;
+  color: var(--app-mut);
   flex-shrink: 0;
 }
 
@@ -267,7 +292,7 @@ body.panel-view #root {
   align-items: center;
   gap: 6px;
   background: var(--app-grn-bg);
-  color: var(--app-grn);
+  color: var(--app-grn-text);
   font-size: 12px;
   font-weight: 600;
   border-radius: 999px;
@@ -320,7 +345,7 @@ body.panel-view #root {
   padding: 9px 13px;
   font-size: 12.5px;
   font-weight: 600;
-  color: var(--app-grn);
+  color: var(--app-grn-text);
 }
 
 .selection-banner.is-visible {
@@ -449,7 +474,7 @@ body.panel-view #root {
 
 .inline-msg-success {
   background: var(--app-grn-bg);
-  color: var(--app-grn);
+  color: var(--app-grn-text);
 }
 
 .inline-msg-error {
@@ -475,7 +500,7 @@ body.panel-view #root {
   height: 40px;
   border-radius: 50%;
   background: var(--app-blue-bg);
-  color: var(--app-blue);
+  color: var(--app-blue-text);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -508,7 +533,7 @@ body.panel-view #root {
   align-items: center;
   gap: 5px;
   padding: 5px 10px;
-  border: 1px solid var(--app-bd);
+  border: 1px solid var(--app-bd-strong);
   border-radius: 8px;
   background: none;
   color: var(--app-mut);
@@ -657,7 +682,7 @@ body.panel-view #root {
 /* "+" button at the end of the swatch grid */
 .color-swatch-add {
   background: none !important;
-  border: 1.5px dashed #b8b8cc !important;
+  border: 1.5px dashed var(--app-bd-strong) !important;
   box-shadow: none !important;
   color: var(--app-mut);
   font-size: 18px;
@@ -809,8 +834,8 @@ body.panel-view #root {
 }
 
 .wizard-step.is-active .wizard-step-dot {
-  border-color: var(--app-blue);
-  color: var(--app-blue);
+  border-color: var(--app-blue-text);
+  color: var(--app-blue-text);
   background: var(--app-blue-bg);
 }
 
@@ -865,17 +890,17 @@ body.panel-view #root {
 
 .wizard-banner-info {
   background: var(--app-blue-bg);
-  color: var(--app-blue);
+  color: var(--app-blue-text);
 }
 
 .wizard-banner-success {
   background: var(--app-grn-bg);
-  color: var(--app-grn);
+  color: var(--app-grn-text);
 }
 
 .wizard-banner-warn {
   background: var(--app-amber-bg);
-  color: var(--app-amber);
+  color: var(--app-amber-text);
 }
 
 /* ── Layout choice (step 1) ──────────────────────────────────────────────── */
@@ -897,7 +922,7 @@ body.panel-view #root {
   max-width: 180px;
   padding: 18px 12px 14px;
   background: #fff;
-  border: 1.5px solid var(--app-bd);
+  border: 1.5px solid var(--app-bd-strong);
   border-radius: 12px;
   cursor: pointer;
   transition: border-color 120ms ease, box-shadow 120ms ease, background 120ms ease;
@@ -926,7 +951,7 @@ body.panel-view #root {
   right: 10px;
   width: 15px;
   height: 15px;
-  border: 1.5px solid #c8c8c8;
+  border: 1.5px solid var(--app-bd-strong);
   border-radius: 4px;
   background: #fff;
   display: flex;
@@ -981,7 +1006,7 @@ body.panel-view #root {
   gap: 2px;
   min-height: 130px;
   padding: 22px 16px;
-  border: 1.5px dashed #c2c8e8;
+  border: 1.5px dashed #6b74ad;
   border-radius: 12px;
   background: var(--app-bg);
   text-align: center;
@@ -1034,7 +1059,7 @@ body.panel-view #root {
 .drop-constraints {
   margin: 6px 0 0;
   font-size: 11.5px;
-  color: #9a9ab0;
+  color: var(--app-mut);
 }
 
 .drop-error-msg {
@@ -1060,7 +1085,7 @@ body.panel-view #root {
   height: 32px;
   border-radius: 8px;
   background: var(--app-grn-bg);
-  color: var(--app-grn);
+  color: var(--app-grn-text);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1203,7 +1228,7 @@ body.panel-view #root {
 .auto-badge {
   font-size: 11px;
   font-weight: 700;
-  color: var(--app-blue);
+  color: var(--app-blue-text);
   background: var(--app-blue-bg);
   border-radius: 999px;
   padding: 3px 9px;
@@ -1241,7 +1266,7 @@ body.panel-view #root {
 }
 
 .mapping-preview-cell.is-empty {
-  color: #9a9ab0;
+  color: var(--app-mut);
 }
 
 /* ── Fields step (step 4) ────────────────────────────────────────────────── */
@@ -1261,7 +1286,7 @@ body.panel-view #root {
   flex-shrink: 0;
   font-size: 12px;
   font-weight: 700;
-  color: var(--app-blue);
+  color: var(--app-blue-text);
   background: var(--app-blue-bg);
   border-radius: 999px;
   padding: 4px 10px;
@@ -1382,7 +1407,7 @@ body.panel-view #root {
 .progress-hint {
   margin: 14px 0 0;
   font-size: 11.5px;
-  color: #9a9ab0;
+  color: var(--app-mut);
 }
 
 /* ── Gradient color picker popup ─────────────────────────────────────────── */
@@ -1528,7 +1553,7 @@ body.panel-view #root {
   text-transform: uppercase;
   text-align: center;
   letter-spacing: 0.04em;
-  border: 1px solid var(--app-bd);
+  border: 1px solid var(--app-bd-strong);
   border-radius: 6px;
   outline: none;
 }

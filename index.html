@@ -19,9 +19,13 @@
         --lp-ink: #15151e;
         --lp-mut: #69697f;
         --lp-bd: #e4e4ee;
+        --lp-bd-strong: #8a8a9e; /* WCAG 1.4.11: ≥3:1 component boundaries */
         --lp-bg: #f7f7fb;
         --lp-grn: #11845b;
         --lp-grnbg: #e8f6f0;
+        /* WCAG 1.4.3: text-on-tint variants (≥4.5:1 on their backgrounds) */
+        --lp-blue-text: #2f4bd6;
+        --lp-grn-text: #0d6b49;
       }
       body.about-page {
         display: block;
@@ -53,7 +57,7 @@
         align-items: center;
         gap: 6px;
         background: var(--lp-blue-bg);
-        color: var(--lp-blue);
+        color: var(--lp-blue-text);
         font-size: 12px;
         font-weight: 600;
         border-radius: 999px;
@@ -97,7 +101,7 @@
       .lp-btn-secondary {
         background: #fff;
         color: var(--lp-ink);
-        border-color: var(--lp-bd);
+        border-color: var(--lp-bd-strong);
       }
       .lp-section-title {
         font-size: 13px;
@@ -205,7 +209,7 @@
         border-radius: 10px;
         padding: 12px 16px;
         font-size: 13px;
-        color: var(--lp-grn);
+        color: var(--lp-grn-text);
         font-weight: 600;
         margin-top: 14px;
       }
@@ -222,7 +226,8 @@
         color: var(--lp-mut);
       }
       .lp-footer a {
-        color: var(--lp-blue);
+        /* page background is --lp-bg, where the brand blue only reaches ~4.4:1 */
+        color: var(--lp-blue-text);
         font-weight: 600;
         text-decoration: none;
       }
