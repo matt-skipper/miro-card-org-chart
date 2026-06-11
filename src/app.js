@@ -123,6 +123,41 @@ async function readValidatedCsvFile(file) {
   return parsed;
 }
 
+/** Human-readable file size for the upload chip. */
+function formatFileSize(bytes) {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
+/**
+ * Conservative header auto-matcher for the mapping step.
+ * Only matches a role when exactly one candidate column qualifies —
+ * a wrong auto-match is worse than none.
+ * Returns { name, email, manager } with header strings or null.
+ */
+function autoMatchColumns(headers) {
+  const norm = (h) => (h || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const entries = headers.map((h) => ({ h, n: norm(h) }));
+  const isMgr = (n) => /(manager|supervisor|reportsto|mgr)/.test(n);
+  const pickUnique = (cands) => (cands.length === 1 ? cands[0].h : null);
+
+  const result = { name: null, email: null, manager: null };
+  result.manager = pickUnique(entries.filter((e) => isMgr(e.n)));
+
+  let rest = entries.filter((e) => e.h !== result.manager);
+  result.email =
+    pickUnique(rest.filter((e) => !isMgr(e.n) && /(email|employeeid|workerid|personid|userid)/.test(e.n))) ||
+    pickUnique(rest.filter((e) => !isMgr(e.n) && e.n === 'id'));
+
+  rest = rest.filter((e) => e.h !== result.email);
+  result.name =
+    pickUnique(rest.filter((e) => ['name', 'fullname', 'employeename', 'employee'].includes(e.n))) ||
+    pickUnique(rest.filter((e) => !isMgr(e.n) && /name/.test(e.n)));
+
+  return result;
+}
+
 function setSelectOptions(select, values, placeholderText = '') {
   const options = [];
   if (placeholderText) options.push(new Option(placeholderText, ''));
@@ -194,6 +229,56 @@ function buildOrgTree(records, { nameCol, emailCol, managerEmailCol }) {
       indexToLevelAndOrder.set(row[k], { level: lev, order: k, rowSize: row.length });
   }
   return { validIndices, levels, indexToLevelAndOrder, managerToEmployees, emailToIndex, roots };
+}
+
+/**
+ * Dry-run analysis of the org hierarchy for the pre-import validation banner.
+ * Mirrors buildOrgTree's matching rules without touching the board:
+ *   - employees: rows with a non-empty name
+ *   - roots: people with no/unknown/self supervisor (top-level leads)
+ *   - unmatched: rows whose supervisor ID matches no Employee ID (silently become roots on import)
+ *   - cycles: people unreachable from any root (manager cycles)
+ *   - skipped: rows with an empty name (not imported)
+ */
+function analyzeOrgRecords(records, { nameCol, emailCol, managerEmailCol }) {
+  const emailToIndex = new Map();
+  const valid = [];
+  let skipped = 0;
+  records.forEach((rec, i) => {
+    const name = (rec[nameCol] || '').trim();
+    if (!name) { skipped += 1; return; }
+    valid.push(i);
+    const email = normalizeEmail(rec[emailCol]);
+    if (email) emailToIndex.set(email, i);
+  });
+
+  const children = new Map();
+  const rootIdx = [];
+  let unmatched = 0;
+  for (const i of valid) {
+    const mg = normalizeEmail(records[i][managerEmailCol]);
+    const mi = mg ? emailToIndex.get(mg) : undefined;
+    if (!mg || mi == null || mi === i) {
+      rootIdx.push(i);
+      if (mg && mi == null) unmatched += 1;
+    } else {
+      if (!children.has(mi)) children.set(mi, []);
+      children.get(mi).push(i);
+    }
+  }
+
+  // BFS from roots; anyone unreachable is in a manager cycle
+  const reached = new Set(rootIdx);
+  const queue = [...rootIdx];
+  while (queue.length) {
+    const cur = queue.shift();
+    for (const child of children.get(cur) || []) {
+      if (!reached.has(child)) { reached.add(child); queue.push(child); }
+    }
+  }
+  const cycles = valid.filter((i) => !reached.has(i)).length;
+
+  return { employees: valid.length, roots: rootIdx.length, unmatched, cycles, skipped };
 }
 
 // ─── Buchheim Layout ──────────────────────────────────────────────────────────
@@ -504,7 +589,11 @@ function getCardFieldsFromCsv(rec, includeHeaders, fieldCols) {
  * Uses a temporary “probe” card to measure real card height (extra fields grow the widget)
  * before final positions are computed so vertical gaps stay visually consistent.
  */
-async function createCardsFromCSV(file, { nameCol, emailCol, managerEmailCol, fieldCols, layout = 'vertical' }) {
+async function createCardsFromCSV(
+  file,
+  { nameCol, emailCol, managerEmailCol, fieldCols, layout = 'vertical' },
+  onProgress = () => {},
+) {
   const isHorizontal = layout === 'horizontal';
   const { headers, rows } = await readValidatedCsvFile(file);
 
@@ -514,6 +603,11 @@ async function createCardsFromCSV(file, { nameCol, emailCol, managerEmailCol, fi
   if (tree.validIndices.length > MAX_CARDS_PER_IMPORT) {
     throw new Error(`A single import can create up to ${MAX_CARDS_PER_IMPORT} cards.`);
   }
+
+  const totalCards = tree.validIndices.length;
+  let totalConnectors = 0;
+  for (const emps of tree.managerToEmployees.values()) totalConnectors += emps.length;
+  onProgress({ phase: 'cards', done: 0, total: totalCards });
 
   const includeHeaders = document.getElementById('include-header-values')?.checked ?? false;
 
@@ -575,6 +669,8 @@ async function createCardsFromCSV(file, { nameCol, emailCol, managerEmailCol, fi
   probeCard.y = startY + py0;
   await probeCard.sync();
   indexToCard.set(firstIndex, probeCard);
+  let cardsDone = 1;
+  onProgress({ phase: 'cards', done: cardsDone, total: totalCards });
 
   for (const i of tree.validIndices) {
     if (i === firstIndex) continue;
@@ -590,7 +686,12 @@ async function createCardsFromCSV(file, { nameCol, emailCol, managerEmailCol, fi
       style: { cardTheme: DEFAULT_CARD_THEME },
     });
     indexToCard.set(i, card);
+    cardsDone += 1;
+    onProgress({ phase: 'cards', done: cardsDone, total: totalCards });
   }
+
+  let connectorsDone = 0;
+  onProgress({ phase: 'connectors', done: 0, total: totalConnectors });
 
   // Create connectors.
   // Horizontal layout: manager right-center → child left-center.
@@ -620,6 +721,8 @@ async function createCardsFromCSV(file, { nameCol, emailCol, managerEmailCol, fi
         end:   { item: empCard.id, position: endPos   },
         style: { strokeColor: '#3d3d3d', strokeWidth: 1, endStrokeCap: 'arrow' },
       });
+      connectorsDone += 1;
+      onProgress({ phase: 'connectors', done: connectorsDone, total: totalConnectors });
     }
   }
 
@@ -630,26 +733,132 @@ async function createCardsFromCSV(file, { nameCol, emailCol, managerEmailCol, fi
   );
 }
 
-// ─── Collapsible Sections (panel) ────────────────────────────────────────────
-// Each .collapsible-section has a .section-toggle button (the heading) and a
-// .section-body div. Clicking the toggle adds/removes .is-open on the section,
-// which CSS uses to animate the max-height of the body and rotate the chevron.
+// ─── Selection Store (panel) ──────────────────────────────────────────────────
+// Single source of truth for the cards currently selected on the board.
+// setupSelectionWatcher seeds it from getSelection() and keeps it fresh via the
+// SDK 'selection:update' event, so panel views update live — no Load buttons.
 
-function setupCollapsibleSections() {
-  document.querySelectorAll('.collapsible-section').forEach((section) => {
-    const toggle = section.querySelector('.section-toggle');
-    const body   = section.querySelector('.section-body');
-    if (!toggle || !body) return;
-
-    toggle.addEventListener('click', () => {
-      const isOpen = section.classList.toggle('is-open');
-      toggle.setAttribute('aria-expanded', String(isOpen));
+const selectionStore = {
+  cards: [],
+  listeners: new Set(),
+  set(cards) {
+    this.cards = cards;
+    this.listeners.forEach((fn) => {
+      try { fn(cards); } catch (err) { console.error(err); }
     });
+  },
+  subscribe(fn) {
+    this.listeners.add(fn);
+    fn(this.cards);
+  },
+};
+
+async function setupSelectionWatcher() {
+  if (!document.getElementById('view-home')) return; // panel only
+  const refresh = (items) => selectionStore.set((items || []).filter((i) => i.type === 'card'));
+  try {
+    refresh(await miro.board.getSelection());
+  } catch (err) {
+    console.warn('Could not read initial selection:', err);
+  }
+  try {
+    miro.board.ui.on('selection:update', (event) => refresh(event.items));
+  } catch (err) {
+    console.warn('selection:update subscription failed:', err);
+  }
+}
+
+// ─── Panel Navigation (home ↔ tool views) ────────────────────────────────────
+
+function setupPanelNav() {
+  const views = {
+    home: document.getElementById('view-home'),
+    formatting: document.getElementById('view-formatting'),
+    details: document.getElementById('view-details'),
+  };
+  if (!views.home) return;
+
+  const show = (name) => {
+    Object.entries(views).forEach(([key, el]) => {
+      if (el) el.style.display = key === name ? 'flex' : 'none';
+    });
+  };
+
+  document.getElementById('nav-formatting')?.addEventListener('click', () => show('formatting'));
+  document.getElementById('nav-details')?.addEventListener('click', () => show('details'));
+  document.querySelectorAll('[data-nav-home]').forEach((btn) => {
+    btn.addEventListener('click', () => show('home'));
   });
+
+  // Live "N cards selected on board" pill on home
+  const pill = document.getElementById('selection-pill');
+  if (pill) {
+    selectionStore.subscribe((cards) => {
+      if (cards.length) {
+        pill.textContent = `${cards.length} card${cards.length === 1 ? '' : 's'} selected on board`;
+        pill.classList.add('is-visible');
+      } else {
+        pill.classList.remove('is-visible');
+      }
+    });
+  }
+}
+
+// ─── Inline Feedback Messages (panel) ────────────────────────────────────────
+// Success/error feedback rendered next to the triggering action instead of a
+// board toast on the far side of the screen. Auto-dismisses; one message per
+// slot so rapid actions replace rather than stack.
+
+function showInlineMessage(slot, type, text) {
+  if (!slot) return;
+  slot.replaceChildren();
+  const msg = document.createElement('div');
+  msg.className = `inline-msg inline-msg-${type}`;
+  msg.textContent = text;
+  slot.append(msg);
+  clearTimeout(slot._dismissTimer);
+  slot._dismissTimer = setTimeout(() => {
+    if (slot.contains(msg)) msg.remove();
+  }, 4500);
 }
 
 // ─── Create Chart Button (panel) ─────────────────────────────────────────────
 // Opens create-chart.html in a focused modal (app.html only).
+
+const FEEDBACK_EMAIL = 'cardorgchart-app@miro.com';
+const FEEDBACK_MAILTO =
+  `mailto:${FEEDBACK_EMAIL}?subject=${encodeURIComponent('Miro Card Org Chart Feedback')}`;
+
+/** Open the default mail client without navigating the panel iframe. */
+async function openFeedbackEmail() {
+  try {
+    const link = document.createElement('a');
+    link.href = FEEDBACK_MAILTO;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    return;
+  } catch (_) { /* fall through to clipboard fallback */ }
+
+  try {
+    await navigator.clipboard.writeText(FEEDBACK_EMAIL);
+    await miro.board.notifications.showInfo(`Email address copied: ${FEEDBACK_EMAIL}`);
+  } catch (_) {
+    await miro.board.notifications.showInfo(`Send feedback to ${FEEDBACK_EMAIL}`);
+  }
+}
+
+function setupFeedbackButton() {
+  const btn = document.getElementById('panel-feedback-btn');
+  if (!btn) return;
+  btn.addEventListener('click', (e) => {
+    e.preventDefault();
+    openFeedbackEmail();
+  });
+}
 
 function setupCreateChartButton() {
   const btn = document.getElementById('open-create-modal-btn');
@@ -657,9 +866,28 @@ function setupCreateChartButton() {
   btn.addEventListener('click', async () => {
     await miro.board.ui.openModal({
       url: 'create-chart.html',
-      width: 440,
-      height: 540,
+      width: 480,
+      height: 680,
       fullscreen: false,
+    });
+  });
+}
+
+// ─── Tooltip Esc Dismissal (WCAG 1.4.13) ─────────────────────────────────────
+// Content shown on hover/focus must be dismissible without moving focus.
+// Esc adds .tip-hidden (CSS suppresses the tooltip); leaving/blurring the
+// anchor clears it so the tooltip works again on the next hover/focus.
+
+function setupTooltipDismissal() {
+  const anchors = document.querySelectorAll('.tooltip-anchor');
+  if (!anchors.length) return;
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape') return;
+    anchors.forEach((a) => a.classList.add('tip-hidden'));
+  });
+  anchors.forEach((anchor) => {
+    ['mouseleave', 'blur'].forEach((evt) => {
+      anchor.addEventListener(evt, () => anchor.classList.remove('tip-hidden'));
     });
   });
 }
@@ -672,63 +900,130 @@ function setupModalInitialFocus() {
   document.body.removeAttribute('tabindex');
 }
 
-// ─── File Upload (modal) ──────────────────────────────────────────────────────
-// create-chart.html only: drag/drop + browse, three wizard views, loading overlay, Done → API.
+// ─── File Upload Wizard (modal) ──────────────────────────────────────────────
+// create-chart.html only. Four steps with a labeled stepper:
+//   1 Layout → 2 Upload (parse on select, file chip) → 3 Map (auto-match +
+//   preview + validation) → 4 Fields (search, counter, summary) → progress → done.
 
 function setupFileUpload() {
-  // Page 1 (layout choice)
+  // Stepper
+  const stepEls  = Array.from(document.querySelectorAll('.wizard-step'));
+  const stepBars = Array.from(document.querySelectorAll('.wizard-step-bar'));
+  // Step 1 (layout choice)
   const viewLayout      = document.getElementById('view-layout');
   const layoutOptions   = document.querySelectorAll('.layout-option');
   const layoutNextBtn   = document.getElementById('layout-next-btn');
-  // Page 2 (upload)
+  // Step 2 (upload)
   const input           = document.getElementById('file-upload');
-  const browseBtn       = document.getElementById('browse-btn');
   const dropZone        = document.getElementById('drop-zone');
-  const stateEmpty      = document.getElementById('drop-state-empty');
-  const stateFilled     = document.getElementById('drop-state-filled');
-  const nameEl          = document.getElementById('file-name');
   const dropErrorEl     = document.getElementById('drop-error');
+  const fileChip        = document.getElementById('file-chip');
+  const fileNameEl      = document.getElementById('file-name');
+  const fileMetaEl      = document.getElementById('file-meta');
+  const fileRemoveBtn   = document.getElementById('file-remove-btn');
   const nextBtn         = document.getElementById('next-btn');
   const uploadBackBtn   = document.getElementById('upload-back-btn');
   const viewUpload      = document.getElementById('view-upload');
-  // Page 3
+  // Step 3 (mapping)
   const viewMapping     = document.getElementById('view-mapping');
   const nameSelect      = document.getElementById('map-name-col');
   const emailSelect     = document.getElementById('map-email-col');
   const managerSelect   = document.getElementById('map-manager-email-col');
+  const autoBadges      = {
+    name:    document.getElementById('auto-badge-name'),
+    email:   document.getElementById('auto-badge-email'),
+    manager: document.getElementById('auto-badge-manager'),
+  };
+  const automatchBanner = document.getElementById('automatch-banner');
+  const previewWrap     = document.getElementById('mapping-preview-wrap');
+  const previewEl       = document.getElementById('mapping-preview');
+  const validationEl    = document.getElementById('validation-banner');
   const backBtn         = document.getElementById('back-btn');
   const mappingNextBtn  = document.getElementById('mapping-next-btn');
-  // Page 3
+  // Step 4 (fields)
   const viewFields      = document.getElementById('view-fields');
   const fieldsListEl    = document.getElementById('fields-list');
+  const fieldsSearchEl  = document.getElementById('fields-search');
+  const fieldsCounterEl = document.getElementById('fields-counter');
   const selectAllEl     = document.getElementById('select-all-fields');
+  const importSummaryEl = document.getElementById('import-summary');
   const fieldsBackBtn   = document.getElementById('fields-back-btn');
   const doneBtn         = document.getElementById('done-btn');
+  // Progress overlay
   const loadingEl       = document.getElementById('view-loading');
+  const progressBar     = document.getElementById('progress-bar');
+  const progressCount   = document.getElementById('progress-count');
+  const progressPhase   = document.getElementById('progress-phase');
   if (!input || !nextBtn) return;
 
-  const MAX_FIELDS  = 20;
-  let selectedFile  = null;
-  let csvHeaders    = [];
-  let selectedLayout = null; // 'vertical' | 'horizontal' — chosen on page 1
+  const MAX_FIELDS   = 20;
+  let selectedFile   = null;
+  let parsedCsv      = null;   // { headers, rows } — cached at selection time
+  let selectedLayout = null;   // 'vertical' | 'horizontal'
+  let lastAnalysis   = null;   // result of analyzeOrgRecords from the mapping step
 
+  // ── Wizard view switching + stepper state ─────────────────────────────────
   const wizardViews = [viewLayout, viewUpload, viewMapping, viewFields];
+
   function showWizardView(activeView) {
     wizardViews.forEach((view) => {
-      if (view) view.style.display = view === activeView ? 'flex' : 'none';
+      if (view) view.classList.toggle('is-active', view === activeView);
+    });
+    const activeIdx = wizardViews.indexOf(activeView); // -1 hides all (progress)
+    stepEls.forEach((el, i) => {
+      const isActive = i === activeIdx;
+      const isDone = activeIdx > i || activeIdx === -1;
+      el.classList.toggle('is-active', isActive);
+      el.classList.toggle('is-done', isDone);
+      // State for screen readers — visual state is color/checkmark only (WCAG 1.4.1/4.1.2)
+      if (isActive) el.setAttribute('aria-current', 'step');
+      else el.removeAttribute('aria-current');
+      const stateEl = el.querySelector('[data-step-state]');
+      if (stateEl) stateEl.textContent = isDone ? ', completed' : (isActive ? ', current step' : '');
+    });
+    stepBars.forEach((bar, i) => {
+      bar.classList.toggle('is-done', activeIdx > i || activeIdx === -1);
     });
   }
 
   showWizardView(viewLayout || viewUpload);
 
-  // ── Page 1: layout choice ─────────────────────────────────────────────────
+  // ── Step 1: layout choice ─────────────────────────────────────────────────
+  // ARIA radio pattern: one tab stop, arrow keys move + select (mirrors the
+  // color swatch grid implementation).
+
+  function syncLayoutTabstops() {
+    const opts = Array.from(layoutOptions);
+    const selectedIdx = opts.findIndex((o) => o.getAttribute('aria-checked') === 'true');
+    opts.forEach((o, i) => {
+      o.tabIndex = (selectedIdx === -1 ? i === 0 : i === selectedIdx) ? 0 : -1;
+    });
+  }
+
   layoutOptions.forEach((opt) => {
     opt.addEventListener('click', () => {
       selectedLayout = opt.dataset.layout;
       layoutOptions.forEach((o) => o.setAttribute('aria-checked', String(o === opt)));
+      syncLayoutTabstops();
       if (layoutNextBtn) layoutNextBtn.disabled = false;
     });
   });
+  syncLayoutTabstops();
+
+  const layoutGroup = document.querySelector('.layout-options');
+  if (layoutGroup) {
+    layoutGroup.addEventListener('keydown', (e) => {
+      if (!['ArrowRight', 'ArrowLeft', 'ArrowUp', 'ArrowDown'].includes(e.key)) return;
+      const opts = Array.from(layoutOptions);
+      const idx = opts.indexOf(document.activeElement);
+      if (idx === -1) return;
+      e.preventDefault();
+      const delta = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : -1;
+      const next = opts[(idx + delta + opts.length) % opts.length];
+      next.focus();
+      next.click(); // radio pattern: selection follows focus
+    });
+  }
 
   if (layoutNextBtn) {
     layoutNextBtn.addEventListener('click', () => {
@@ -738,12 +1033,10 @@ function setupFileUpload() {
   }
 
   if (uploadBackBtn) {
-    uploadBackBtn.addEventListener('click', () => {
-      showWizardView(viewLayout);
-    });
+    uploadBackBtn.addEventListener('click', () => showWizardView(viewLayout));
   }
 
-  // ── Drop zone helpers ──────────────────────────────────────────────────────
+  // ── Step 2: drop zone + file chip ─────────────────────────────────────────
 
   function showDropError(msg) {
     if (dropErrorEl) { dropErrorEl.textContent = msg; dropErrorEl.style.display = 'block'; }
@@ -755,32 +1048,62 @@ function setupFileUpload() {
     if (dropZone) dropZone.classList.remove('drop-zone--error');
   }
 
-  function selectFile(file) {
+  async function selectFile(file) {
     const fileError = validateCsvFile(file);
     if (fileError) {
       clearFile();
       showDropError(fileError);
       return;
     }
+    let parsed;
+    try {
+      parsed = await readValidatedCsvFile(file);
+    } catch (err) {
+      clearFile();
+      showDropError(err.message || String(err));
+      return;
+    }
     selectedFile = file;
+    parsedCsv = parsed;
     clearDropError();
-    if (nameEl)      nameEl.textContent          = file.name;
-    if (stateEmpty)  stateEmpty.style.display     = 'none';
-    if (stateFilled) stateFilled.style.display    = 'flex';
+    if (fileNameEl) fileNameEl.textContent = file.name;
+    if (fileMetaEl) {
+      fileMetaEl.textContent =
+        `${formatFileSize(file.size)} · ${parsed.rows.length} rows · ${parsed.headers.length} columns`;
+    }
+    if (fileChip) fileChip.style.display = 'flex';
     nextBtn.disabled = false;
   }
 
   function clearFile() {
-    selectedFile     = null;
-    input.value      = '';
+    selectedFile = null;
+    parsedCsv = null;
+    lastAnalysis = null;
+    input.value = '';
     nextBtn.disabled = true;
-    if (nameEl)      nameEl.textContent          = '';
-    if (stateEmpty)  stateEmpty.style.display     = 'flex';
-    if (stateFilled) stateFilled.style.display    = 'none';
+    if (fileChip) fileChip.style.display = 'none';
+    if (fileNameEl) fileNameEl.textContent = '';
+    if (fileMetaEl) fileMetaEl.textContent = '';
   }
 
-  if (browseBtn) browseBtn.addEventListener('click', (e) => { e.stopPropagation(); input.click(); });
-  if (dropZone)  dropZone.addEventListener('click',  () => { if (selectedFile) input.click(); });
+  if (fileRemoveBtn) {
+    fileRemoveBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      clearFile();
+      clearDropError();
+    });
+  }
+
+  // Dropzone: click anywhere or press Enter/Space to browse (keyboard accessible)
+  if (dropZone) {
+    dropZone.addEventListener('click', () => input.click());
+    dropZone.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        input.click();
+      }
+    });
+  }
 
   input.addEventListener('change', (e) => {
     const file = e.target.files?.[0];
@@ -804,39 +1127,123 @@ function setupFileUpload() {
     });
   }
 
-  // ── Page 1 → Page 2 ───────────────────────────────────────────────────────
-  nextBtn.addEventListener('click', async () => {
-    if (!selectedFile) return;
-    let headers;
-    try {
-      ({ headers } = await readValidatedCsvFile(selectedFile));
-    } catch (err) {
-      await miro.board.notifications.showError(err.message || String(err));
-      return;
-    }
-    csvHeaders = headers;
+  // ── Step 2 → Step 3: populate selects + auto-match ────────────────────────
+  nextBtn.addEventListener('click', () => {
+    if (!selectedFile || !parsedCsv) return;
+    const { headers } = parsedCsv;
     [nameSelect, emailSelect, managerSelect].forEach((sel) => {
       if (sel) setSelectOptions(sel, headers, '— select column —');
     });
-    if (mappingNextBtn) mappingNextBtn.disabled = true;
+
+    const matched = autoMatchColumns(headers);
+    const assignments = [
+      [nameSelect, matched.name, 'name'],
+      [emailSelect, matched.email, 'email'],
+      [managerSelect, matched.manager, 'manager'],
+    ];
+    let matchCount = 0;
+    assignments.forEach(([sel, value, key]) => {
+      const badge = autoBadges[key];
+      if (sel && value) {
+        sel.value = value;
+        matchCount += 1;
+        if (badge) badge.style.visibility = 'visible';
+      } else if (badge) {
+        badge.style.visibility = 'hidden';
+      }
+    });
+
+    if (automatchBanner) {
+      if (matchCount > 0) {
+        automatchBanner.textContent =
+          `✨ We auto-matched ${matchCount} column${matchCount === 1 ? '' : 's'} from your headers — review and adjust if needed.`;
+        automatchBanner.style.display = 'flex';
+      } else {
+        automatchBanner.style.display = 'none';
+      }
+    }
+
+    checkMappingComplete();
+    updateMappingExtras();
     showWizardView(viewMapping);
   });
 
-  // ── Page 2 → Page 1 ───────────────────────────────────────────────────────
-  if (backBtn) backBtn.addEventListener('click', () => {
-    showWizardView(viewUpload);
-  });
+  if (backBtn) backBtn.addEventListener('click', () => showWizardView(viewUpload));
 
-  // Enable "Next" on page 2 when all 3 dropdowns have values
   function checkMappingComplete() {
     const allSelected = [nameSelect, emailSelect, managerSelect].every((sel) => sel && sel.value);
     if (mappingNextBtn) mappingNextBtn.disabled = !allSelected;
   }
-  [nameSelect, emailSelect, managerSelect].forEach((sel) => {
-    if (sel) sel.addEventListener('change', checkMappingComplete);
+
+  // ── Step 3: data preview + dry-run validation ─────────────────────────────
+
+  function renderMappingPreview(records, mapping) {
+    if (!previewEl || !previewWrap) return;
+    const cols = [mapping.nameCol, mapping.emailCol, mapping.managerEmailCol];
+    const makeRow = (values, isHeader) => {
+      const row = document.createElement('div');
+      row.className = `mapping-preview-row${isHeader ? ' is-header' : ''}`;
+      values.forEach((v) => {
+        const cell = document.createElement('span');
+        cell.className = `mapping-preview-cell${v ? '' : ' is-empty'}`;
+        cell.textContent = v || '—';
+        cell.title = v || '';
+        row.append(cell);
+      });
+      return row;
+    };
+    const rows = [makeRow(cols, true)];
+    records.slice(0, 2).forEach((rec) => {
+      rows.push(makeRow(cols.map((c) => (rec[c] || '').trim()), false));
+    });
+    previewEl.replaceChildren(...rows);
+    previewWrap.style.display = 'block';
+  }
+
+  function updateMappingExtras() {
+    const allSelected = [nameSelect, emailSelect, managerSelect].every((sel) => sel && sel.value);
+    if (!allSelected || !parsedCsv) {
+      lastAnalysis = null;
+      if (previewWrap) previewWrap.style.display = 'none';
+      if (validationEl) validationEl.style.display = 'none';
+      return;
+    }
+    const records = rowsToRecords(parsedCsv.headers, parsedCsv.rows);
+    const mapping = {
+      nameCol: nameSelect.value,
+      emailCol: emailSelect.value,
+      managerEmailCol: managerSelect.value,
+    };
+    renderMappingPreview(records, mapping);
+
+    lastAnalysis = analyzeOrgRecords(records, mapping);
+    const a = lastAnalysis;
+    if (!validationEl) return;
+    const clean = a.unmatched === 0 && a.cycles === 0;
+    const parts = [
+      `${a.employees} employee${a.employees === 1 ? '' : 's'}`,
+      a.roots === 1 ? '1 top-level lead' : `${a.roots} top-level leads`,
+      `${a.unmatched} unmatched supervisor${a.unmatched === 1 ? '' : 's'}`,
+    ];
+    if (a.cycles) parts.push(`${a.cycles} in a manager cycle (placed at top level)`);
+    if (a.skipped) parts.push(`${a.skipped} row${a.skipped === 1 ? '' : 's'} skipped (empty name)`);
+    validationEl.textContent = `${clean ? '✓' : '⚠'} ${parts.join(' · ')}`;
+    validationEl.className = `wizard-banner ${clean ? 'wizard-banner-success' : 'wizard-banner-warn'}`;
+    validationEl.style.display = 'flex';
+  }
+
+  [nameSelect, emailSelect, managerSelect].forEach((sel, idx) => {
+    if (!sel) return;
+    const key = ['name', 'email', 'manager'][idx];
+    sel.addEventListener('change', () => {
+      const badge = autoBadges[key];
+      if (badge) badge.style.visibility = 'hidden'; // manual override clears the badge
+      checkMappingComplete();
+      updateMappingExtras();
+    });
   });
 
-  // ── Page 3 helpers ────────────────────────────────────────────────────────
+  // ── Step 4 helpers ────────────────────────────────────────────────────────
 
   function getCheckedCount() {
     return fieldsListEl?.querySelectorAll('.field-checkbox:checked').length ?? 0;
@@ -847,6 +1254,25 @@ function setupFileUpload() {
     fieldsListEl?.querySelectorAll('.field-checkbox').forEach((cb) => {
       if (!cb.checked) cb.disabled = count >= MAX_FIELDS;
     });
+  }
+
+  function updateFieldsCounter() {
+    if (fieldsCounterEl) fieldsCounterEl.textContent = `${getCheckedCount()} of ${MAX_FIELDS} selected`;
+  }
+
+  function renderImportSummary() {
+    if (!importSummaryEl) return;
+    const layoutLabel = (selectedLayout || 'vertical') === 'horizontal' ? 'Horizontal' : 'Vertical';
+    const cardCount = lastAnalysis ? lastAnalysis.employees : (parsedCsv ? parsedCsv.rows.length : 0);
+    const fieldCount = getCheckedCount();
+    importSummaryEl.replaceChildren();
+    const text = document.createElement('span');
+    text.append(`${layoutLabel} layout · ${selectedFile ? selectedFile.name : ''} · `);
+    const bold = document.createElement('b');
+    bold.textContent = `${cardCount} card${cardCount === 1 ? '' : 's'}`;
+    text.append(bold);
+    text.append(` · ${fieldCount} field${fieldCount === 1 ? '' : 's'} per card`);
+    importSummaryEl.append(text);
   }
 
   function syncSelectAll() {
@@ -866,7 +1292,34 @@ function setupFileUpload() {
       selectAllEl.checked = false;
       selectAllEl.indeterminate = true;
     }
+    updateFieldsCounter();
+    renderImportSummary();
   }
+
+  function applyFieldsSearch() {
+    if (!fieldsListEl) return;
+    const query = (fieldsSearchEl?.value || '').trim().toLowerCase();
+    let visible = 0;
+    fieldsListEl.querySelectorAll('.field-item').forEach((item) => {
+      const label = item.textContent.toLowerCase();
+      const hide = Boolean(query) && !label.includes(query);
+      item.classList.toggle('is-filtered', hide);
+      if (!hide) visible += 1;
+    });
+    let noResults = fieldsListEl.querySelector('.fields-no-results');
+    if (!visible) {
+      if (!noResults) {
+        noResults = document.createElement('p');
+        noResults.className = 'fields-no-results';
+        noResults.textContent = 'No columns match your search.';
+        fieldsListEl.append(noResults);
+      }
+    } else if (noResults) {
+      noResults.remove();
+    }
+  }
+
+  if (fieldsSearchEl) fieldsSearchEl.addEventListener('input', applyFieldsSearch);
 
   function populateFieldsList(remainingCols) {
     if (!fieldsListEl) return;
@@ -892,6 +1345,7 @@ function setupFileUpload() {
       return item;
     });
     fieldsListEl.replaceChildren(...items);
+    if (fieldsSearchEl) fieldsSearchEl.value = '';
     enforceFieldMax();
     syncSelectAll();
     fieldsListEl.querySelectorAll('.field-checkbox').forEach((cb) => {
@@ -913,23 +1367,61 @@ function setupFileUpload() {
     });
   }
 
-  // ── Page 2 → Page 3 ───────────────────────────────────────────────────────
+  // ── Step 3 → Step 4 ───────────────────────────────────────────────────────
   if (mappingNextBtn) {
     mappingNextBtn.addEventListener('click', () => {
       if (!nameSelect?.value || !emailSelect?.value || !managerSelect?.value) return;
       const mappedCols    = new Set([nameSelect.value, emailSelect.value, managerSelect.value]);
-      const remainingCols = csvHeaders.filter((h) => !mappedCols.has(h));
+      const remainingCols = (parsedCsv?.headers || []).filter((h) => !mappedCols.has(h));
       populateFieldsList(remainingCols);
       showWizardView(viewFields);
     });
   }
 
-  // ── Page 3 → Page 2 ───────────────────────────────────────────────────────
-  if (fieldsBackBtn) fieldsBackBtn.addEventListener('click', () => {
-    showWizardView(viewMapping);
-  });
+  if (fieldsBackBtn) fieldsBackBtn.addEventListener('click', () => showWizardView(viewMapping));
 
-  // ── Done: create org chart ────────────────────────────────────────────────
+  // ── Progress overlay ──────────────────────────────────────────────────────
+  // Cards fill 0–85% of the bar; connectors fill the remaining 15%.
+  // The visual counter updates per item; screen-reader announcements are
+  // throttled to phase changes + ~10% milestones (a 500-card import would
+  // otherwise fire hundreds of aria-live updates).
+
+  const progressTrack    = document.getElementById('progress-track');
+  const progressAnnouncer = document.getElementById('progress-announcer');
+  let lastAnnouncedDecile = -1;
+  let lastAnnouncedPhase  = '';
+
+  function handleProgress({ phase, done, total }) {
+    if (!progressBar || !total) return;
+    let percent;
+    if (phase === 'cards') {
+      if (progressPhase) progressPhase.textContent = 'Placing cards on the board';
+      if (progressCount) progressCount.textContent = `${done} of ${total} cards`;
+      percent = (done / total) * 85;
+    } else {
+      if (progressPhase) progressPhase.textContent = 'Drawing reporting lines';
+      if (progressCount) progressCount.textContent = `${done} of ${total} connectors`;
+      percent = 85 + (done / total) * 15;
+    }
+    progressBar.style.width = `${percent}%`;
+    if (progressTrack) progressTrack.setAttribute('aria-valuenow', String(Math.round(percent)));
+
+    if (progressAnnouncer) {
+      const decile = Math.floor(percent / 10);
+      if (phase !== lastAnnouncedPhase) {
+        lastAnnouncedPhase = phase;
+        lastAnnouncedDecile = decile;
+        progressAnnouncer.textContent = phase === 'cards'
+          ? 'Placing cards on the board'
+          : 'Cards placed. Drawing reporting lines';
+      } else if (decile > lastAnnouncedDecile) {
+        lastAnnouncedDecile = decile;
+        progressAnnouncer.textContent = `${Math.round(percent)} percent complete`;
+      }
+    }
+  }
+
+  // ── Create org chart ──────────────────────────────────────────────────────
   if (doneBtn) {
     doneBtn.addEventListener('click', async () => {
       if (!selectedFile) return;
@@ -944,14 +1436,20 @@ function setupFileUpload() {
         layout:         selectedLayout || 'vertical',
       };
       try {
-        if (loadingEl)  loadingEl.style.display  = 'flex';
+        if (progressBar)   progressBar.style.width = '0%';
+        if (progressCount) progressCount.textContent = '';
+        if (progressPhase) progressPhase.textContent = 'Placing cards on the board';
+        if (progressTrack) progressTrack.setAttribute('aria-valuenow', '0');
+        lastAnnouncedDecile = -1;
+        lastAnnouncedPhase = '';
+        if (loadingEl)     loadingEl.style.display = 'flex';
         showWizardView(null);
-        await createCardsFromCSV(selectedFile, mapping);
+        await createCardsFromCSV(selectedFile, mapping, handleProgress);
         clearFile();
         await miro.board.ui.closeModal();
       } catch (err) {
         console.error(err);
-        if (loadingEl)  loadingEl.style.display  = 'none';
+        if (loadingEl) loadingEl.style.display = 'none';
         showWizardView(viewFields);
         await miro.board.notifications.showError(
           'Failed to create cards: ' + (err.message || String(err)),
@@ -963,8 +1461,6 @@ function setupFileUpload() {
 
 // ─── Conditional Formatting ───────────────────────────────────────────────────
 
-/** Cards currently loaded for conditional formatting (set by "Load selected cards"). */
-let selectedCards = [];
 const CARD_THEME_PALETTE = [
   '#f9eeb8', '#f8d84c', '#c58c00', '#f2f2f2',
   '#f7dfc2', '#f9a34b', '#ae5f00', '#dcdcdc',
@@ -1022,17 +1518,25 @@ function matchesCondition(fieldValue, operator, compareValue) {
 
 /**
  * Conditional formatting + custom color UI (swatches, HSB gradient popup, EyeDropper when available).
- * Operates on the in-memory `selectedCards` snapshot from the last “Load selected cards” click.
+ * Driven live by selectionStore (SDK selection:update) — no Load button. Shows a
+ * rule preview and "X of Y cards match" before anything is applied.
  */
 function setupConditionalFormatting() {
-  const loadBtn          = document.getElementById('load-selected-cards');
   const formatSection    = document.getElementById('conditional-format-section');
+  const emptyState       = document.getElementById('fmt-empty-state');
+  const selectionBanner  = document.getElementById('fmt-selection-banner');
   const formatField      = document.getElementById('format-field');
   const formatOp         = document.getElementById('format-operator');
   const formatValue      = document.getElementById('format-value');
   const formatColor      = document.getElementById('format-color');
   const formatFillBg     = document.getElementById('format-fill-background');
   const applyBtn         = document.getElementById('apply-format');
+  const previewCard      = document.getElementById('fmt-preview-card');
+  const previewTitle     = document.getElementById('fmt-preview-title');
+  const previewField     = document.getElementById('fmt-preview-field');
+  const matchBar         = document.getElementById('fmt-match-bar');
+  const matchCount       = document.getElementById('fmt-match-count');
+  const inlineMsgSlot    = document.getElementById('fmt-inline-msg');
   // ── Gradient color picker ──────────────────────────────────────────────────
   const colorPickerPopup   = document.getElementById('color-picker-popup');
   const cpGradient         = document.getElementById('cp-gradient');
@@ -1043,7 +1547,7 @@ function setupConditionalFormatting() {
   const cpEyedropper       = document.getElementById('cp-eyedropper');
   const colorPickerHex     = document.getElementById('color-picker-hex');
   const colorPickerConfirm = document.getElementById('color-picker-confirm');
-  if (!loadBtn || !formatField || !applyBtn) return;
+  if (!formatField || !applyBtn) return;
 
   let selectedThemeColor = '#5f94e0';
   const customColors = []; // session-only; cleared on every page load
@@ -1107,8 +1611,14 @@ function setupConditionalFormatting() {
   }
 
   // ── Open popup anchored to the "+" button ───────────────────────────────────
+  // Dialog-pattern focus management: focus moves into the popup (hex input) on
+  // open; Esc or outside-click closes and restores focus to the opener.
+
+  let pickerOpener = null;
+
   function openColorPickerPopup(anchorEl) {
     if (!colorPickerPopup) return;
+    pickerOpener = anchorEl;
     const [r,g,b] = hexToRgb(selectedThemeColor);
     [ph, ps, pb] = rgbToHsb(r, g, b);
 
@@ -1122,12 +1632,28 @@ function setupConditionalFormatting() {
     colorPickerPopup.style.left = left + 'px';
     colorPickerPopup.style.top  = top  + 'px';
     colorPickerPopup.classList.add('is-open');
-    requestAnimationFrame(updatePickerUI);
+    requestAnimationFrame(() => {
+      updatePickerUI();
+      if (colorPickerHex) colorPickerHex.focus({ preventScroll: true });
+    });
   }
 
-  function closeColorPickerPopup() {
-    if (colorPickerPopup) colorPickerPopup.classList.remove('is-open');
+  function closeColorPickerPopup(restoreFocus = false) {
+    if (!colorPickerPopup || !colorPickerPopup.classList.contains('is-open')) return;
+    colorPickerPopup.classList.remove('is-open');
+    if (restoreFocus && pickerOpener && document.contains(pickerOpener)) {
+      pickerOpener.focus({ preventScroll: true });
+    }
+    pickerOpener = null;
   }
+
+  // Esc closes the picker and returns focus to the "+" swatch (WCAG dialog pattern)
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && colorPickerPopup?.classList.contains('is-open')) {
+      e.stopPropagation();
+      closeColorPickerPopup(true);
+    }
+  });
 
   // ── Gradient drag ───────────────────────────────────────────────────────────
   if (cpGradient) {
@@ -1197,13 +1723,16 @@ function setupConditionalFormatting() {
       if (!CARD_THEME_PALETTE.includes(hex) && !customColors.includes(hex)) customColors.push(hex);
       selectedThemeColor = hex;
       renderColorSwatches();
+      refreshMatch();
       closeColorPickerPopup();
+      // Land keyboard focus on the swatch that was just added/selected
+      formatColor?.querySelector('[aria-checked="true"]')?.focus({ preventScroll: true });
     });
   }
 
   // ── Close on outside click ──────────────────────────────────────────────────
   if (colorPickerPopup) colorPickerPopup.addEventListener('click', (e) => e.stopPropagation());
-  document.addEventListener('click', closeColorPickerPopup);
+  document.addEventListener('click', () => closeColorPickerPopup()); // outside click: close, don't move focus
 
   // ── Swatch rendering ────────────────────────────────────────────────────────
   function renderColorSwatches() {
@@ -1216,7 +1745,9 @@ function setupConditionalFormatting() {
       swatch.className = `color-swatch-btn${isCustom ? ' color-swatch-custom' : ''}`;
       swatch.setAttribute('role', 'radio');
       swatch.setAttribute('aria-label', `Color ${hex}`);
-      swatch.setAttribute('aria-checked', String(hex.toLowerCase() === selectedThemeColor.toLowerCase()));
+      const isSelected = hex.toLowerCase() === selectedThemeColor.toLowerCase();
+      swatch.setAttribute('aria-checked', String(isSelected));
+      swatch.tabIndex = isSelected ? 0 : -1; // roving tabindex: grid is one tab stop
       swatch.dataset.color = hex;
       swatch.style.backgroundColor = hex;
       if (hex === '#f2f2f2' || hex === '#ffffff') swatch.style.border = '1px solid #cfcfcf';
@@ -1234,6 +1765,7 @@ function setupConditionalFormatting() {
     addButton.type = 'button';
     addButton.className = 'color-swatch-btn color-swatch-add';
     addButton.setAttribute('aria-label', 'Add custom color');
+    addButton.tabIndex = -1; // reachable via arrow keys within the grid
     addButton.append('+');
 
     const addTooltip = document.createElement('span');
@@ -1256,62 +1788,159 @@ function setupConditionalFormatting() {
         return;
       }
       const hex = t.dataset.color;
-      if (hex) { selectedThemeColor = hex; renderColorSwatches(); }
+      if (hex) {
+        selectedThemeColor = hex;
+        renderColorSwatches();
+        refreshMatch();
+        // keep keyboard focus on the newly selected swatch after re-render
+        formatColor.querySelector('[aria-checked="true"]')?.focus({ preventScroll: true });
+      }
+    });
+
+    // Arrow-key navigation within the swatch radiogroup (single tab stop)
+    formatColor.addEventListener('keydown', (e) => {
+      if (!['ArrowRight', 'ArrowLeft', 'ArrowUp', 'ArrowDown'].includes(e.key)) return;
+      const btns = Array.from(formatColor.querySelectorAll('.color-swatch-btn'));
+      const idx = btns.indexOf(document.activeElement);
+      if (idx === -1) return;
+      e.preventDefault();
+      const delta = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : -1;
+      btns[(idx + delta + btns.length) % btns.length].focus();
     });
   }
 
-  loadBtn.addEventListener('click', async () => {
-    try {
-      const selection = await miro.board.getSelection();
-      selectedCards = selection.filter((item) => item.type === 'card');
-      if (!selectedCards.length) {
-        await miro.board.notifications.showError(
-          'No cards selected. Select one or more cards on the board first.',
-        );
-        if (formatSection) formatSection.style.display = 'none';
-        return;
+  // ── Live selection → rule state ─────────────────────────────────────────────
+
+  /** Convert #rrggbb to a translucent rgba() for the preview fill. */
+  function hexWithAlpha(hex, alpha) {
+    const [r, g, b] = hexToRgb(hex);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
+
+  function computeMatches() {
+    const fieldKey = formatField.value;
+    if (!fieldKey) return [];
+    return selectionStore.cards.filter((card) =>
+      matchesCondition(getFieldValueByKey(card, fieldKey), formatOp.value, formatValue.value),
+    );
+  }
+
+  /** Recompute match count, preview card, and Apply button state. */
+  function refreshMatch() {
+    if (!matchBar || !matchCount) return;
+    const total = selectionStore.cards.length;
+    const matches = computeMatches();
+
+    matchBar.style.width = total ? `${(matches.length / total) * 100}%` : '0%';
+    matchCount.textContent = `${matches.length} of ${total} card${total === 1 ? '' : 's'} match`;
+
+    applyBtn.disabled = matches.length === 0;
+    applyBtn.textContent = matches.length
+      ? `Apply to ${matches.length} card${matches.length === 1 ? '' : 's'}`
+      : 'Apply to matching cards';
+
+    if (previewCard) {
+      const sample = matches[0] || selectionStore.cards[0];
+      if (previewTitle) previewTitle.textContent = sample?.title || 'Card title';
+      const fieldKey = formatField.value;
+      if (previewField) {
+        previewField.textContent = sample && fieldKey
+          ? `${fieldKey}: ${getFieldValueByKey(sample, fieldKey) || '—'}`
+          : '';
       }
-      const fieldKeysSet = new Set();
-      for (const card of selectedCards)
-        (card.fields || []).forEach((f) => {
-          const k = (f.tooltip || '').trim();
-          if (k) fieldKeysSet.add(k);
-        });
-      const fieldKeys = [...fieldKeysSet].sort();
-      setSelectOptions(formatField, fieldKeys);
-      if (formatSection) formatSection.style.display = fieldKeys.length ? 'block' : 'none';
-      await miro.board.notifications.showInfo(
-        `Loaded ${selectedCards.length} card(s). ${fieldKeys.length} field(s) available.`,
-      );
-    } catch (err) {
-      console.error(err);
-      await miro.board.notifications.showError(
-        'Failed to load selection: ' + (err.message || String(err)),
-      );
+      previewCard.style.borderLeftColor = selectedThemeColor;
+      previewCard.style.background = formatFillBg?.checked
+        ? hexWithAlpha(selectedThemeColor, 0.14)
+        : '#fff';
     }
-  });
+  }
+
+  /** React to selection changes: banner, field options, empty state. */
+  function refreshFromSelection(cards) {
+    if (!cards.length) {
+      if (selectionBanner) selectionBanner.classList.remove('is-visible');
+      if (emptyState) emptyState.style.display = 'block';
+      if (formatSection) formatSection.style.display = 'none';
+      return;
+    }
+
+    const fieldKeysSet = new Set();
+    for (const card of cards) {
+      (card.fields || []).forEach((f) => {
+        const k = (f.tooltip || '').trim();
+        if (k) fieldKeysSet.add(k);
+      });
+    }
+    const fieldKeys = [...fieldKeysSet].sort();
+
+    if (selectionBanner) {
+      selectionBanner.textContent =
+        `${cards.length} card${cards.length === 1 ? '' : 's'} selected · ` +
+        `${fieldKeys.length} field${fieldKeys.length === 1 ? '' : 's'} detected`;
+      selectionBanner.classList.add('is-visible');
+    }
+
+    if (!fieldKeys.length) {
+      if (emptyState) emptyState.style.display = 'block';
+      if (formatSection) formatSection.style.display = 'none';
+      return;
+    }
+
+    if (emptyState) emptyState.style.display = 'none';
+    if (formatSection) formatSection.style.display = 'block';
+
+    // Preserve the user's field choice across selection updates when possible
+    const previous = formatField.value;
+    setSelectOptions(formatField, fieldKeys);
+    if (fieldKeys.includes(previous)) formatField.value = previous;
+
+    refreshMatch();
+  }
+
+  selectionStore.subscribe(refreshFromSelection);
+
+  formatField.addEventListener('change', refreshMatch);
+  if (formatOp) formatOp.addEventListener('change', refreshMatch);
+  if (formatValue) formatValue.addEventListener('input', refreshMatch);
+  if (formatFillBg) formatFillBg.addEventListener('change', refreshMatch);
+
+  // ── Apply ───────────────────────────────────────────────────────────────────
 
   applyBtn.addEventListener('click', async () => {
-    const fieldKey     = formatField.value;
-    const operator     = formatOp.value;
-    const compareValue = formatValue.value;
-    const hexColor     = selectedThemeColor;
-    const fillBg       = formatFillBg.checked;
-    if (!fieldKey) { await miro.board.notifications.showError('Select a field.'); return; }
+    const fieldKey = formatField.value;
+    if (!fieldKey) {
+      showInlineMessage(inlineMsgSlot, 'error', 'Select a field first.');
+      return;
+    }
+    const matches = computeMatches();
+    if (!matches.length) {
+      showInlineMessage(inlineMsgSlot, 'error', 'No selected cards match this rule.');
+      return;
+    }
+    const hexColor = selectedThemeColor;
+    const fillBg = formatFillBg?.checked ?? false;
     try {
-      let applied = 0;
-      for (const card of selectedCards) {
-        if (!matchesCondition(getFieldValueByKey(card, fieldKey), operator, compareValue)) continue;
+      for (const card of matches) {
         card.style = card.style || {};
         card.style.cardTheme = hexColor;
         card.style.fillBackground = fillBg;
         await card.sync();
-        applied++;
       }
-      await miro.board.notifications.showInfo(`Applied style to ${applied} matching card(s).`);
+      // Board notification once everything has synced, so users know the work
+      // is complete (https://developers.miro.com/docs/websdk-reference-notifications)
+      await miro.board.notifications.showInfo(
+        `Formatting applied to ${matches.length} card${matches.length === 1 ? '' : 's'}`,
+      );
+      showInlineMessage(
+        inlineMsgSlot,
+        'success',
+        `Formatting applied to ${matches.length} card${matches.length === 1 ? '' : 's'}.`,
+      );
     } catch (err) {
       console.error(err);
-      await miro.board.notifications.showError(
+      showInlineMessage(
+        inlineMsgSlot,
+        'error',
         'Failed to apply format: ' + (err.message || String(err)),
       );
     }
@@ -1319,93 +1948,139 @@ function setupConditionalFormatting() {
 }
 
 // ─── Single Card Details ──────────────────────────────────────────────────────
-// app.html only: load one selected card, toggle edit mode, persist field text back via card.sync().
+// app.html only. Driven live by selectionStore: exactly one selected card shows
+// its identity block + fields. View mode renders plain text rows (definition
+// list); inputs only appear in Edit mode. Save persists via card.sync() and
+// preserves "Header: " prefixes added by "Include header values".
 
 function setupSingleCardDetails() {
-  const loadBtn   = document.getElementById('load-single-card');
-  const section   = document.getElementById('single-card-section');
-  const nameEl    = document.getElementById('single-card-name');
-  const fieldsEl  = document.getElementById('single-card-fields');
-  const editBtn   = document.getElementById('edit-card-fields-btn');
-  const saveBtn   = document.getElementById('save-card-fields-btn');
-  if (!loadBtn || !fieldsEl) return;
+  const section    = document.getElementById('single-card-section');
+  const emptyState = document.getElementById('details-empty-state');
+  const emptyTitle = document.getElementById('details-empty-title');
+  const emptyText  = document.getElementById('details-empty-text');
+  const subtitle   = document.getElementById('details-subtitle');
+  const nameEl     = document.getElementById('single-card-name');
+  const avatarEl   = document.getElementById('card-avatar');
+  const metaEl     = document.getElementById('card-meta');
+  const fieldsEl   = document.getElementById('single-card-fields');
+  const editBtn    = document.getElementById('edit-card-fields-btn');
+  const editLabel  = document.getElementById('edit-card-fields-label');
+  const saveBtn    = document.getElementById('save-card-fields-btn');
+  const msgSlot    = document.getElementById('details-inline-msg');
+  if (!fieldsEl || !editBtn) return;
 
   let currentCard = null;
   let isEditing   = false;
 
-  function renderFields(editable) {
-    const fields = currentCard.fields || [];
+  const initials = (title) => {
+    const parts = (title || '').trim().split(/\s+/).filter(Boolean);
+    return parts.slice(0, 2).map((w) => w[0].toUpperCase()).join('') || '?';
+  };
+
+  function renderViewMode() {
+    const fields = currentCard?.fields || [];
     if (!fields.length) {
-      const emptyState = document.createElement('p');
-      emptyState.className = 'body-small subtext';
-      emptyState.textContent = 'This card has no fields.';
-      fieldsEl.replaceChildren(emptyState);
+      const empty = document.createElement('p');
+      empty.className = 'p-small';
+      empty.textContent = 'This card has no fields.';
+      fieldsEl.replaceChildren(empty);
       return;
     }
-    const fieldRows = fields.map((f, i) => {
+    const list = document.createElement('div');
+    list.className = 'field-view-list';
+    fields.forEach((f, i) => {
       const row = document.createElement('div');
-      row.className = 'form-group';
-
-      const label = document.createElement('label');
-      label.className = 'body-small';
+      row.className = 'field-view-row';
+      const label = document.createElement('span');
+      label.className = 'field-view-label';
       label.textContent = f.tooltip || `Field ${i + 1}`;
+      const value = document.createElement('span');
+      value.className = 'field-view-value';
+      value.textContent = stripHeaderPrefix(f.value, f.tooltip) || '—';
+      row.append(label, value);
+      list.append(row);
+    });
+    fieldsEl.replaceChildren(list);
+  }
 
+  function renderEditMode() {
+    const fields = currentCard?.fields || [];
+    const rows = fields.map((f, i) => {
+      const row = document.createElement('div');
+      row.className = 'field-edit-row';
+      const label = document.createElement('label');
+      label.textContent = f.tooltip || `Field ${i + 1}`;
+      label.htmlFor = `card-field-input-${i}`;
       const input = document.createElement('input');
       input.type = 'text';
-      input.className = editable ? 'input card-field-input' : 'input';
+      input.className = 'input card-field-input';
+      input.id = `card-field-input-${i}`;
       input.dataset.fieldIndex = String(i);
       input.value = stripHeaderPrefix(f.value, f.tooltip);
-      input.readOnly = !editable;
-
       row.append(label, input);
       return row;
     });
-    fieldsEl.replaceChildren(...fieldRows);
+    fieldsEl.replaceChildren(...rows);
   }
 
-  loadBtn.addEventListener('click', async () => {
-    try {
-      const selection = await miro.board.getSelection();
-      const cards = selection.filter((item) => item.type === 'card');
-      if (cards.length > 1) {
-        await miro.board.notifications.showError(
-          'Only a single card is allowed for this selection.',
-        );
-        return;
-      }
-      if (!cards.length) {
-        await miro.board.notifications.showError(
-          'No card selected. Select a single card on the board first.',
-        );
-        section.style.display = 'none';
-        return;
-      }
-      currentCard        = cards[0];
-      isEditing          = false;
-      nameEl.textContent = currentCard.title || '(untitled)';
-      editBtn.textContent = 'Edit fields';
-      saveBtn.style.display = 'none';
-      renderFields(false);
-      section.style.display = 'block';
-    } catch (err) {
-      console.error(err);
-      await miro.board.notifications.showError(
-        'Failed to load card: ' + (err.message || String(err)),
-      );
+  function exitEditMode() {
+    isEditing = false;
+    if (editLabel) editLabel.textContent = 'Edit';
+    saveBtn.style.display = 'none';
+    renderViewMode();
+  }
+
+  function showCard(card) {
+    currentCard = card;
+    if (nameEl) nameEl.textContent = card.title || '(untitled)';
+    if (avatarEl) avatarEl.textContent = initials(card.title);
+    if (metaEl) {
+      const n = (card.fields || []).length;
+      metaEl.textContent = `${n} field${n === 1 ? '' : 's'}`;
     }
+    if (subtitle) subtitle.textContent = 'Updates live with your selection';
+    editBtn.disabled = !(card.fields || []).length;
+    exitEditMode();
+    if (emptyState) emptyState.style.display = 'none';
+    if (section) section.style.display = 'block';
+  }
+
+  function showEmpty(kind) {
+    currentCard = null;
+    isEditing = false;
+    if (section) section.style.display = 'none';
+    if (emptyState) emptyState.style.display = 'block';
+    if (subtitle) subtitle.textContent = 'Select a single card on the board';
+    if (kind === 'multi') {
+      if (emptyTitle) emptyTitle.textContent = 'Multiple cards selected';
+      if (emptyText) emptyText.textContent = 'Select just one card on the board to view or edit its fields.';
+    } else {
+      if (emptyTitle) emptyTitle.textContent = 'No card selected';
+      if (emptyText) emptyText.textContent = 'Select a single card on the board to view or edit its fields. The panel updates automatically.';
+    }
+  }
+
+  selectionStore.subscribe((cards) => {
+    // Don't clobber in-flight edits when the same card re-emits (e.g. after sync)
+    if (isEditing && currentCard && cards.length === 1 && cards[0].id === currentCard.id) return;
+    if (cards.length === 1) showCard(cards[0]);
+    else showEmpty(cards.length ? 'multi' : 'none');
   });
 
   editBtn.addEventListener('click', () => {
     if (!currentCard) return;
     isEditing = !isEditing;
-    renderFields(isEditing);
-    editBtn.textContent   = isEditing ? 'Cancel' : 'Edit fields';
-    saveBtn.style.display = isEditing ? 'block' : 'none';
+    if (isEditing) {
+      renderEditMode();
+      if (editLabel) editLabel.textContent = 'Cancel';
+      saveBtn.style.display = 'block';
+    } else {
+      exitEditMode(); // Cancel: revert without syncing
+    }
   });
 
   saveBtn.addEventListener('click', async () => {
     if (!currentCard) return;
-    const inputs = fieldsEl.querySelectorAll('.card-field-input');
     const fields = (currentCard.fields || []).map((f, i) => {
       const input = fieldsEl.querySelector(`[data-field-index="${i}"]`);
       if (!input) return f;
@@ -1418,16 +2093,11 @@ function setupSingleCardDetails() {
     try {
       currentCard.fields = fields;
       await currentCard.sync();
-      isEditing             = false;
-      editBtn.textContent   = 'Edit fields';
-      saveBtn.style.display = 'none';
-      renderFields(false);
-      await miro.board.notifications.showInfo('Card fields updated.');
+      exitEditMode();
+      showInlineMessage(msgSlot, 'success', 'Card fields updated.');
     } catch (err) {
       console.error(err);
-      await miro.board.notifications.showError(
-        'Failed to save changes: ' + (err.message || String(err)),
-      );
+      showInlineMessage(msgSlot, 'error', 'Failed to save changes: ' + (err.message || String(err)));
     }
   });
 }
@@ -1438,22 +2108,21 @@ function setupSingleCardDetails() {
 // only has the elements it needs and the rest of the setup calls return early.
 
 function init() {
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-      setupCollapsibleSections();
-      setupCreateChartButton();
-      setupModalInitialFocus();
-      setupFileUpload();
-      setupConditionalFormatting();
-      setupSingleCardDetails();
-    });
-  } else {
-    setupCollapsibleSections();
+  const setupAll = () => {
+    setupPanelNav();
     setupCreateChartButton();
+    setupFeedbackButton();
+    setupTooltipDismissal();
     setupModalInitialFocus();
     setupFileUpload();
     setupConditionalFormatting();
     setupSingleCardDetails();
+    setupSelectionWatcher(); // last: subscribers above receive the initial selection
+  };
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', setupAll);
+  } else {
+    setupAll();
   }
 }
 
